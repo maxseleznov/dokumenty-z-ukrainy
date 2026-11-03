@@ -10,10 +10,10 @@ SITE = {
     "domain": "https://maxseleznov.github.io/dokumenty-z-ukrainy",  # після купівлі домену: "https://dokumenty-z-ukrainy.com.ua"
     "base": "/dokumenty-z-ukrainy",  # підпапка на GitHub Pages; з власним доменом → ""
     "lawyer": "Адвокатське бюро «Селезньов та Партнери»",
-    "cert": "[НОМЕР]",  # TODO: номер свідоцтва адвоката
+    "cert": "000208",
     "city": "м. Вінниця, вул. А. Артинова, 46, офіс 110",
     "offices": "Вінниця · Київ · Харків",
-    "email": "rozirvannya@gmail.com",
+    "email": "maxseleznov@gmail.com",
     "phone": "+380 93 768 84 16",
     "phone_raw": "+380937688416",
     "telegram": "https://t.me/rozlucheni",
@@ -106,7 +106,7 @@ def footer():
   <div class="wrap">
     <div class="footer-col">
       <strong>{SITE['name']}</strong>
-      <span>{SITE['lawyer']}. <a href="{SITE['unba']}" rel="noopener" target="_blank">Профіль у реєстрі адвокатів НААУ</a>. Офіси: {SITE['offices']}.</span>
+      <span>{SITE['lawyer']}, свідоцтво про право на заняття адвокатською діяльністю № {SITE['cert']}. <a href="{SITE['unba']}" rel="noopener" target="_blank">Профіль у реєстрі адвокатів НААУ</a>. Офіси: {SITE['offices']}.</span>
       <span>{SITE['city']}</span>
       <span>Повторна видача свідоцтв і витягів ДРАЦС та витяг про несудимість є державними послугами, доступними на порталі Дія. Ми надаємо правову допомогу та представництво, а не доступ до цих послуг.</span>
       <span>© {datetime.date.today().year}</span>
