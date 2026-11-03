@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://maxseleznov.github.io/dokumenty-z-ukrainy/sitemap.xml
