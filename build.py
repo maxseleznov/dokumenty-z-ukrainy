@@ -9,11 +9,18 @@ SITE = {
     "name": "Документи з України",
     "domain": "https://maxseleznov.github.io/dokumenty-z-ukrainy",  # після купівлі домену: "https://dokumenty-z-ukrainy.com.ua"
     "base": "/dokumenty-z-ukrainy",  # підпапка на GitHub Pages; з власним доменом → ""
-    "lawyer": "[ПІБ адвоката]",
-    "cert": "[НОМЕР]",
-    "city": "м. Вінниця, Україна",
-    "email": "[EMAIL]",
-    "phone": "[ТЕЛЕФОН]",
+    "lawyer": "Адвокатське бюро «Селезньов та Партнери»",
+    "cert": "[НОМЕР]",  # TODO: номер свідоцтва адвоката
+    "city": "м. Вінниця, вул. А. Артинова, 46, офіс 110",
+    "offices": "Вінниця · Київ · Харків",
+    "email": "rozirvannya@gmail.com",
+    "phone": "+380 93 768 84 16",
+    "phone_raw": "+380937688416",
+    "telegram": "https://t.me/rozlucheni",
+    "unba": "https://erau.unba.org.ua/profile/58196",
+    "instagram": "https://www.instagram.com/rozlucheni/",
+    "facebook": "https://www.facebook.com/RozirvannyaShlubuOnline",
+    "youtube": "https://www.youtube.com/@rozlucheni",
     "cases": "2 000+",
 }
 OUT = os.path.dirname(os.path.abspath(__file__))
@@ -50,7 +57,9 @@ def head(title, desc, path, extra_ld=None):
         "@context": "https://schema.org", "@type": "LegalService",
         "name": SITE["name"], "url": SITE["domain"],
         "areaServed": "UA", "availableLanguage": ["uk"],
-        "address": {"@type": "PostalAddress", "addressLocality": "Вінниця", "addressCountry": "UA"},
+        "telephone": SITE["phone_raw"], "email": SITE["email"],
+        "sameAs": [SITE["telegram"], SITE["instagram"], SITE["facebook"], SITE["youtube"], SITE["unba"]],
+        "address": {"@type": "PostalAddress", "streetAddress": "вул. А. Артинова, 46, офіс 110", "addressLocality": "Вінниця", "addressCountry": "UA"},
         "description": "Отримання повторних свідоцтв ДРАЦС, витягів з реєстру актів цивільного стану та витягу про несудимість через адвоката для українців за кордоном. Апостиль, переклад, доставка.",
     }]
     if extra_ld: ld += extra_ld
@@ -84,7 +93,7 @@ def header():
     <a class="logo" href="/"><span class="logo-mark">{ICON['logo']}</span>{SITE['name']}</a>
     <nav class="nav" id="nav" aria-label="Головне меню">{nav}</nav>
     <div class="header-cta">
-      <a class="btn-text" data-tg href="#">{ICON['chat']} Telegram</a>
+      <a class="btn-text" href="{SITE['telegram']}" rel="noopener" target="_blank">{ICON['chat']} Telegram</a>
       <a class="btn btn-primary btn-sm" href="#form">Залишити заявку</a>
       <button class="nav-toggle" aria-label="Меню" aria-expanded="false" aria-controls="nav">{ICON['menu']}</button>
     </div>
@@ -97,7 +106,8 @@ def footer():
   <div class="wrap">
     <div class="footer-col">
       <strong>{SITE['name']}</strong>
-      <span>Адвокат {SITE['lawyer']}, свідоцтво про право на заняття адвокатською діяльністю № {SITE['cert']}. {SITE['city']}.</span>
+      <span>{SITE['lawyer']}. <a href="{SITE['unba']}" rel="noopener" target="_blank">Профіль у реєстрі адвокатів НААУ</a>. Офіси: {SITE['offices']}.</span>
+      <span>{SITE['city']}</span>
       <span>Повторна видача свідоцтв і витягів ДРАЦС та витяг про несудимість є державними послугами, доступними на порталі Дія. Ми надаємо правову допомогу та представництво, а не доступ до цих послуг.</span>
       <span>© {datetime.date.today().year}</span>
     </div>
@@ -112,10 +122,14 @@ def footer():
     </div>
     <div class="footer-col">
       <a href="/privacy.html">Політика конфіденційності</a>
-      <a data-tg href="#">Telegram</a>
-      <a data-wa href="#">WhatsApp</a>
+      <a href="tel:{SITE['phone_raw']}">{SITE['phone']}</a>
       <a href="mailto:{SITE['email']}">{SITE['email']}</a>
-      <span>{SITE['phone']}</span>
+      <a href="{SITE['telegram']}" rel="noopener" target="_blank">Telegram</a>
+      <a href="{SITE['instagram']}" rel="noopener" target="_blank">Instagram</a>
+      <a href="{SITE['facebook']}" rel="noopener" target="_blank">Facebook</a>
+      <a href="{SITE['youtube']}" rel="noopener" target="_blank">YouTube</a>
+      <a href="https://razvod-online.com.ua" rel="noopener">Розірвання шлюбу онлайн</a>
+      <a href="https://alimenty-online.com.ua" rel="noopener">Аліменти онлайн</a>
     </div>
   </div>
 </footer>
@@ -552,7 +566,7 @@ def build_misc():
     h = head(f"Політика конфіденційності | {SITE['name']}", "Політика обробки персональних даних сайту.", "/privacy.html")
     write("privacy.html", h + header() + f'''<main><section class="section"><div class="wrap narrow prose">
 <h1>Політика конфіденційності</h1>
-<p>Цей сайт належить адвокату {SITE['lawyer']} ({SITE['city']}). Персональні дані, які ви залишаєте у формі заявки (контакт, країна, опис ситуації), використовуються виключно для підготовки відповіді та укладення договору про правову допомогу. Дані не передаються третім особам, крім випадків, передбачених законом, і зберігаються не довше, ніж потрібно для надання послуги.</p>
+<p>Цей сайт належить {SITE['lawyer']} ({SITE['city']}). Персональні дані, які ви залишаєте у формі заявки (контакт, країна, опис ситуації), використовуються виключно для підготовки відповіді та укладення договору про правову допомогу. Дані не передаються третім особам, крім випадків, передбачених законом, і зберігаються не довше, ніж потрібно для надання послуги.</p>
 <p>Відомості, отримані адвокатом у зв'язку з наданням правової допомоги, є адвокатською таємницею відповідно до Закону України «Про адвокатуру та адвокатську діяльність».</p>
 <p>Ви можете в будь-який момент запросити видалення своїх даних, написавши на {SITE['email']}.</p>
 <p class="muted">[Доповнити: сервіс обробки форм, аналітика, cookies.]</p>
