@@ -44,20 +44,15 @@
       <form class="card-form" id="form" data-lead method="post" action="#">
   <div class="stack" style="gap:4px">
     <h2>Розрахунок вартості</h2>
-    <p class="muted">Відповімо протягом робочого дня з ціною, строком і переліком того, що від вас потрібно.</p>
+    <p class="muted">Напишемо протягом робочого дня з ціною і строком. Деталі уточнимо в листуванні.</p>
   </div>
   <div class="field"><label for="f-doc">Який документ потрібен</label><select id="f-doc" name="doc"><option value="narodzhennya">Повторне свідоцтво про народження</option><option value="shlyub" selected>Повторне свідоцтво про шлюб</option><option value="rozirvannya">Свідоцтво / витяг про розірвання шлюбу</option><option value="smert">Повторне свідоцтво про смерть</option><option value="vytyag">Витяг з ДРАЦС</option><option value="nesudymist">Витяг про несудимість</option><option value="kilka">Кілька документів / не знаю</option></select></div>
-  <div class="form-row">
-    <div class="field"><label for="f-country">Де ви зараз</label><input id="f-country" name="country" type="text" placeholder="Країна, місто" autocomplete="country-name"></div>
-    <div class="field"><label for="f-when">Коли потрібен документ</label><select id="f-when" name="urgency"><option>Не терміново</option><option>До 2 тижнів</option><option>Терміново, до 5 днів</option></select></div>
-  </div>
-  <div class="field"><label for="f-extra">Потрібно додатково</label><select id="f-extra" name="extra"><option>Лише документ</option><option>Документ + апостиль</option><option>Документ + апостиль + переклад</option><option>Підкажіть, що треба для моєї країни</option></select></div>
-  <div class="field"><label for="f-contact">Ваш Telegram, WhatsApp або email</label><input id="f-contact" name="contact" type="text" placeholder="+380… або @нікнейм" required></div>
-  <div class="field"><label for="f-note">Коротко про ситуацію (необов'язково)</label><textarea id="f-note" name="note" placeholder="Напр.: свідоцтво про народження 1987 р., Вінницька область, потрібне для ВНЖ у Польщі"></textarea></div>
+  <div class="field"><label for="f-contact">Ваш Telegram, WhatsApp або email</label><input id="f-contact" name="contact" type="text" placeholder="+380… або @нікнейм" required autocomplete="off"></div>
   <input class="honey" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
   <div class="form-status" role="status" aria-live="polite"></div>
   <button class="btn btn-primary" type="submit">Отримати розрахунок</button>
-  <p class="form-note">Надсилаючи заявку, ви погоджуєтесь на обробку персональних даних для підготовки відповіді. Консультація щодо вартості безкоштовна.</p>
+  <p class="form-alt">або напишіть одразу в <a href="https://t.me/rozlucheni" rel="noopener" target="_blank">Telegram</a></p>
+  <p class="form-note">Надсилаючи заявку, ви погоджуєтесь на обробку персональних даних для підготовки відповіді.</p>
 </form>
     </div>
   </div>
