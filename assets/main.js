@@ -2,7 +2,7 @@
 (function () {
   // ---- CONFIG: замініть на свої значення -------------------------------
   var FORM_ENDPOINT = "https://formspree.io/f/xppdzqra"; // Formspree / Basin / свій бекенд
-  var TELEGRAM_URL = "https://t.me/rozlucheni";
+  var TELEGRAM_URL = "https://t.me/Online_Advokat_UA";
   var WHATSAPP_URL = "https://wa.me/380XXXXXXXXX";
   // ----------------------------------------------------------------------
 

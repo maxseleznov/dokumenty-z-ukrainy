@@ -17,7 +17,7 @@ SITE = {
     "email": "maxseleznov@gmail.com",
     "phone": "+380 93 768 84 16",
     "phone_raw": "+380937688416",
-    "telegram": "https://t.me/rozlucheni",
+    "telegram": "https://t.me/Online_Advokat_UA",
     "unba": "https://erau.unba.org.ua/profile/58196",
     "instagram": "https://www.instagram.com/rozlucheni/",
     "facebook": "https://www.facebook.com/RozirvannyaShlubuOnline",
