@@ -7,8 +7,8 @@ import html, json, os, datetime
 
 SITE = {
     "name": "Документи з України",
-    "domain": "https://maxseleznov.github.io/dokumenty-z-ukrainy",  # після купівлі домену: "https://dokumenty-z-ukrainy.com.ua"
-    "base": "/dokumenty-z-ukrainy",  # підпапка на GitHub Pages; з власним доменом → ""
+    "domain": "https://dokumenty-z-ukrainy.com.ua",
+    "base": "",  # власний домен; для github.io-підпапки було "/dokumenty-z-ukrainy"
     "lawyer": "Адвокатське бюро «Селезньов та Партнери»",
     "cert": "000208",
     "city": "м. Вінниця, вул. А. Артинова, 46, офіс 110",
