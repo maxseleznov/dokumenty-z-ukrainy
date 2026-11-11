@@ -4,6 +4,7 @@
 Весь контент — у цьому файлі (PAGES); шаблони — нижче.
 """
 import html, json, os, datetime
+from blog_posts import POSTS
 
 SITE = {
     "name": "Документи з України",
@@ -48,7 +49,7 @@ DOC_OPTIONS = [
     ("kilka", "Кілька документів / не знаю"),
 ]
 
-NAV = [("/#docs", "Документи"), ("/#how", "Як це працює"), ("/dlya-ukraintsiv-za-kordonom/", "Якщо ви за кордоном"), ("/apostyl/", "Апостиль"), ("/#faq", "Питання")]
+NAV = [("/#docs", "Документи"), ("/#how", "Як це працює"), ("/dlya-ukraintsiv-za-kordonom/", "Якщо ви за кордоном"), ("/polshcha/", "Польща"), ("/apostyl/", "Апостиль"), ("/blog/", "Блог")]
 
 # ---------------------------------------------------------------- partials
 def head(title, desc, path, extra_ld=None):
@@ -77,9 +78,9 @@ def head(title, desc, path, extra_ld=None):
 <meta property="og:url" content="{url}">
 <meta property="og:locale" content="uk_UA">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="/assets/fonts/manrope-cyrillic-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/inter-cyrillic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/fonts.css">
 <link rel="stylesheet" href="/assets/style.css">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 </head>
@@ -119,8 +120,10 @@ def footer():
       <a href="/vytyag-dracs/">Витяг з ДРАЦС</a>
       <a href="/vytyag-pro-nesudymist/">Витяг про несудимість</a>
       <a href="/apostyl/">Апостиль</a>
+      <a href="/polshcha/">Для Польщі</a>
     </div>
     <div class="footer-col">
+      <a href="/blog/">Блог</a>
       <a href="/privacy.html">Політика конфіденційності</a>
       <a href="tel:{SITE['phone_raw']}">{SITE['phone']}</a>
       <a href="mailto:{SITE['email']}">{SITE['email']}</a>
@@ -133,7 +136,7 @@ def footer():
     </div>
   </div>
 </footer>
-<script src="/assets/main.js"></script>
+<script src="/assets/main.js" defer></script>
 </body>
 </html>
 """
@@ -224,7 +227,7 @@ def build_index():
       <p class="lead" style="max-width:none">Якщо ви в Україні, маєте Дія.Підпис і ваш актовий запис є в електронному реєстрі — замовляйте в Дії. Ми потрібні тоді, коли цей шлях не працює.</p>
     </div>
     <div class="table-wrap"><table class="tbl" aria-label="Порівняння: самостійно через Дію та через адвоката">
-      <thead><tr><th style="width:24%"></th><th>Самостійно через Дію</th><th class="accent">Через адвоката</th></tr></thead>
+      <thead><tr><th style="width:24%" scope="col"><span class="sr-only">Критерій</span></th><th scope="col">Самостійно через Дію</th><th class="accent" scope="col">Через адвоката</th></tr></thead>
       <tbody>
         <tr><td>Хто може</td><td>Той, хто має КЕП або Дія.Підпис (українська SIM, BankID)</td><td>Будь-хто, зокрема без Дії, з іноземним номером, з паспортом старого зразка</td></tr>
         <tr><td>Старі записи (до ~2000-х)</td><td>Часто відмова: запис не оцифровано</td><td>Знаходимо в архіві ДРАЦС, за потреби поновлюємо запис</td></tr>
@@ -309,6 +312,42 @@ COMMON_LAWYER = [
 ]
 
 PAGES = [
+dict(
+    slug="polshcha", doc="kilka",
+    title="Документи з України для Польщі: карта побиту, PESEL, шлюб, громадянство",
+    desc="Які українські документи потрібні в Польщі для карти побиту, транскрипції (umiejscowienie) свідоцтв, шлюбу в USC, возз'єднання сім'ї та громадянства. Апостиль, присяжний переклад, отримання через адвоката без довіреності.",
+    h1="Документи з України для Польщі",
+    lead="Карта побиту, PESEL, реєстрація дитини, шлюб в USC, обивательство — польські установи майже завжди просять українські свідоцтва ДРАЦС і витяг про несудимість. Отримаємо їх за вас в Україні та підготуємо так, як вимагає Польща.",
+    intro="""<h2>Що саме вимагає Польща — і чим це відрізняється</h2>
+<p>У Польщі працюють два правила, про які часто не знають:</p>
+<ul><li><strong>Апостиль формально не обов'язковий.</strong> Між Україною і Польщею діє Договір про правову допомогу 1993 року, за яким офіційні документи приймаються без легалізації. На практиці більшість USC та воєводських управлінь приймають українські свідоцтва без апостиля, але окремі установи й банки його вимагають. Ми радимо ставити апостиль, якщо документ подаватиметься не в одну установу або ви не впевнені — це дешевше, ніж повторна відправка.</li>
+<li><strong>Переклад має зробити польський присяжний перекладач</strong> (tłumacz przysięgły) або консул Польщі. Переклад, засвідчений українським нотаріусом, польські установи <strong>не приймають</strong>. Тому для Польщі ми не продаємо «переклад у пакеті» — надсилаємо вам оригінал, а присяжний переклад ви робите на місці (від 60–100 zł за документ) або ми організовуємо його через партнера в Польщі.</li></ul>
+<h2>Для яких процедур потрібні документи з України</h2>
+<ul><li><strong>Karta pobytu</strong> (тимчасова, постійна, CUKR, возз'єднання сім'ї) — свідоцтво про шлюб, свідоцтва про народження дітей, іноді витяг про несудимість.</li><li><strong>Транскрипція свідоцтва (umiejscowienie aktu)</strong> — внесення українського свідоцтва про народження, шлюб чи смерть до польського реєстру USC. Потрібна для польського паспорта дитини, PESEL за свідоцтвом, зміни прізвища після шлюбу, визнання розлучення. Вимагають <strong>оригінал</strong> свідоцтва українського зразка та присяжний переклад.</li><li><strong>Шлюб у польському USC</strong> — свідоцтво про народження, витяг про сімейний стан (odpis o stanie cywilnym) або рішення суду про розлучення, усе не старше за 3–6 місяців.</li><li><strong>Громадянство (obywatelstwo)</strong> — свідоцтва про народження (своє та батьків), про шлюб, витяг про несудимість з України.</li><li><strong>Спадщина, судові справи, нотаріус</strong> — свідоцтво про смерть, документи про споріднення.</li></ul>
+<p class="callout">Старе свідоцтво радянського зразка або з пошкодженнями USC часто відхиляє. Рішення — отримати <a href="/svidotstvo-pro-narodzhennya/">повторне свідоцтво</a> українського зразка; саме його ми й отримуємо за ордером.</p>""",
+    cases=dict(title="Типові пакети для Польщі", cols=("Процедура","Що просять","Що робимо ми"), rows=[
+        ("Karta pobytu (возз'єднання сім'ї)","свідоцтво про шлюб, свідоцтва про народження дітей","отримуємо повторні свідоцтва нового зразка, апостиль за бажанням, DHL у Польщу"),
+        ("PESEL / паспорт дитині через umiejscowienie","оригінал свідоцтва про народження + присяжний переклад","повторне свідоцтво + апостиль; переклад — присяжний у Польщі"),
+        ("Шлюб в USC","свідоцтво про народження, витяг про сімейний стан, документ про розлучення","свідоцтво + витяг з ДРАЦС (свіжі), за потреби копія рішення суду"),
+        ("Obywatelstwo","свідоцтва про народження, шлюб, несудимість","повний пакет, усе з апостилем, одним відправленням"),
+        ("Спадщина / нотаріус","свідоцтво про смерть, підтвердження споріднення","свідоцтва про смерть, народження, шлюб з апостилем"),
+    ], note="Перелік орієнтовний: воєводські управління й USC у різних містах трактують вимоги по-різному. Надішліть, що саме від вас просять — скажемо, який мінімальний комплект потрібен."),
+    diia=["Якщо маєте Дія.Підпис — замовте повторне свідоцтво у Дії з доставкою родичам в Україні.", "Попросіть їх переслати оригінал вам Укрпоштою / Novа Poshta Global у Польщу.", "У Польщі зробіть присяжний переклад і подайте в установу."],
+    diia_note="Працює, якщо є Дія.Підпис, родичі в Україні і запис є в електронному реєстрі. Апостиль у такому варіанті доведеться організовувати окремо.",
+    lawyer=[
+        ("Немає Дія.Підпису (польський номер, немає BankID)", "Отримуємо документ за ордером, довіреність і консульство не потрібні."),
+        ("USC відхилив старе свідоцтво", "Отримуємо повторне свідоцтво українського зразка, за потреби з апостилем."),
+        ("Запису немає в реєстрі", "Звертаємось до архіву ДРАЦС, добиваємось внесення запису, тоді отримуємо документ."),
+        ("Потрібно для кількох установ одразу", "Кілька примірників, кожен з апостилем, одним відправленням у Польщу."),
+    ],
+    need=["Для якої процедури та в яке місто/установу подаєте", "ПІБ, дати, місця реєстрації актів", "Фото/скан паспорта для договору", "Адреса в Польщі для доставки"],
+    faq=[
+        ("Чи потрібен апостиль на українське свідоцтво для Польщі?", "За Договором про правову допомогу 1993 р. — ні. Але частина установ його все ж просить. Якщо документ подаватиметься в кілька місць або ви не впевнені — радимо ставити; це кілька днів і невеликі витрати в Україні проти тижнів на повторну відправку."),
+        ("Чи можна зробити переклад в Україні?", "Для польських державних установ — ні: потрібен присяжний перекладач, внесений до реєстру в Польщі, або консул. Переклад з українського нотаріального засвідчення USC не прийме."),
+        ("Скільки «живе» свідоцтво для USC?", "Свідоцтва про народження/шлюб безстрокові, але для реєстрації шлюбу USC зазвичай просить витяг про сімейний стан не старший за 3–6 місяців. Уточнюйте в конкретному USC."),
+        ("Як швидко документ буде в Польщі?", "Отримання — від [N] робочих днів, апостиль — ще кілька днів, кур'єр в Польщу — 2–4 дні. Точні строки називаємо в розрахунку."),
+    ],
+),
 dict(
     slug="svidotstvo-pro-narodzhennya", doc="narodzhennya",
     title="Дублікат свідоцтва про народження: як отримати в Україні та за кордоном",
@@ -476,7 +515,7 @@ dict(
 <h2>Як це вирішуємо</h2>
 <p>Укладаємо з вами договір про правову допомогу дистанційно. На його підставі адвокат отримує ордер — документ, який за законом замінює довіреність для отримання повторних свідоцтв і витягів. Далі все відбувається в Україні: ДРАЦС, архів, МВС, апостиль, переклад. Ви отримуєте скан одразу й оригінал кур'єром із трек-номером.</p>
 <h2>Типові пакети</h2>
-<ul><li><strong>Возз'єднання сім'ї / ВНЖ</strong>: свідоцтво про шлюб + про народження дітей + несудимість, усе з апостилем і перекладом.</li><li><strong>Шлюб за кордоном</strong>: витяг про сімейний стан + свідоцтво про народження (+ про розірвання шлюбу).</li><li><strong>Громадянство</strong>: свідоцтва про народження (своє та батьків), про шлюб, несудимість.</li><li><strong>Спадщина</strong>: свідоцтво про смерть + документи про споріднення.</li></ul>""",
+<ul><li><strong>Польща</strong> — окрема сторінка: <a href="/polshcha/">документи для карти побиту, USC, громадянства</a>.</li><li><strong>Возз'єднання сім'ї / ВНЖ</strong>: свідоцтво про шлюб + про народження дітей + несудимість, усе з апостилем і перекладом.</li><li><strong>Шлюб за кордоном</strong>: витяг про сімейний стан + свідоцтво про народження (+ про розірвання шлюбу).</li><li><strong>Громадянство</strong>: свідоцтва про народження (своє та батьків), про шлюб, несудимість.</li><li><strong>Спадщина</strong>: свідоцтво про смерть + документи про споріднення.</li></ul>""",
     diia=["Якщо у вас є Дія.Підпис — замовте документ у Дії з доставкою на адресу родичів в Україні.", "Попросіть родичів відправити документ вам міжнародною поштою.", "Апостиль доведеться оформлювати окремо — особисто в Україні або через представника."],
     diia_note="Цей шлях працює, якщо є Дія.Підпис, родичі в Україні, запис є в реєстрі і не потрібен апостиль. Інакше — простіше через нас.",
     lawyer=COMMON_LAWYER,
@@ -489,6 +528,14 @@ dict(
     ],
 ),
 ]
+
+def cases_block(cases):
+    if not cases: return ""
+    rows = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td></tr>" for a, b, c in cases["rows"])
+    return f"""<section class="section section--alt"><div class="wrap stack-lg"><h2>{cases['title']}</h2>
+<div class="table-wrap"><table class="tbl" aria-label="{html.escape(cases['title'])}"><thead><tr><th scope="col">{cases['cols'][0]}</th><th scope="col">{cases['cols'][1]}</th><th scope="col" class="accent">{cases['cols'][2]}</th></tr></thead><tbody>{rows}</tbody></table></div>
+<p class="muted">{cases.get('note','')}</p></div></section>
+"""
 
 # ---------------------------------------------------------------- inner template
 def build_page(p):
@@ -517,7 +564,7 @@ def build_page(p):
 </section>
 
 <section class="section"><div class="wrap narrow prose">{p['intro']}</div></section>
-
+{cases_block(p.get('cases'))}
 <section class="section section--alt" id="diia">
   <div class="wrap narrow stack-lg">
     <div class="stack" style="gap:10px"><h2>Як отримати самостійно</h2><p class="lead" style="max-width:none">Якщо ви в Україні і маєте Дія.Підпис — спробуйте спершу цей шлях.</p></div>
@@ -548,9 +595,65 @@ def build_page(p):
 {footer()}"""
     write(f"{p['slug']}/index.html", h + body)
 
+
+# ---------------------------------------------------------------- blog
+def fmt_date(d):
+    y,m,dd=d.split("-"); months=["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"]
+    return f"{int(dd)} {months[int(m)-1]} {y}"
+
+def post_card(post):
+    return f"""<article class="card post-card"><span class="small">{fmt_date(post['date'])} · {post['minutes']} хв читання</span><h3><a href="/blog/{post['slug']}/">{html.escape(post['h1'])}</a></h3><p class="muted" style="margin-top:0">{html.escape(post['lead'][:180])}…</p><a class="more" href="/blog/{post['slug']}/">Читати →</a></article>"""
+
+def build_blog_index():
+    h = head(f"Блог: документи з України, ДРАЦС, апостиль, несудимість | {SITE['name']}",
+             "Практичні статті про отримання документів з України для тих, хто за кордоном: відмови Дії, апостиль по країнах, витяги ДРАЦС, несудимість, розлучення.", "/blog/")
+    cards = "".join(post_card(p) for p in sorted(POSTS, key=lambda x: x["date"], reverse=True))
+    body = f"""{header()}
+<main>
+<section class="page-hero"><div class="wrap"><nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><span>Блог</span></nav>
+<div class="stack" style="gap:16px;margin-top:24px;max-width:760px"><h1>Блог</h1><p class="lead" style="max-width:none">Розбираємо реальні ситуації з документами ДРАЦС, апостилем і несудимістю — так, щоб ви могли або зробити самі, або точно знати, що замовляти.</p></div></div></section>
+<section class="section"><div class="wrap"><div class="grid grid-3">{cards}</div></div></section>
+{band()}
+</main>
+{footer()}"""
+    write("blog/index.html", h + body)
+
+def build_post(post):
+    path = f"/blog/{post['slug']}/"
+    ld = [{"@context":"https://schema.org","@type":"Article","headline":post["h1"],"description":post["desc"],
+           "datePublished":post["date"],"dateModified":post["date"],"inLanguage":"uk",
+           "author":{"@type":"Organization","name":SITE["lawyer"],"url":SITE["domain"]},
+           "publisher":{"@type":"Organization","name":SITE["name"],"url":SITE["domain"]},
+           "mainEntityOfPage":SITE["domain"]+path},
+          {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+           {"@type":"ListItem","position":1,"name":"Головна","item":SITE["domain"]+"/"},
+           {"@type":"ListItem","position":2,"name":"Блог","item":SITE["domain"]+"/blog/"},
+           {"@type":"ListItem","position":3,"name":post["h1"],"item":SITE["domain"]+path}]}]
+    h = head(f"{post['title']} | {SITE['name']}", post["desc"], path, ld)
+    rel_pages = [pp for pp in PAGES if pp["slug"] in post.get("related", [])]
+    related = "".join(f'<a class="tile" href="/{pp["slug"]}/" style="text-decoration:none"><strong>{html.escape(pp["h1"])}</strong><p>{html.escape(pp["lead"][:120])}…</p></a>' for pp in rel_pages)
+    others = [pp for pp in POSTS if pp["slug"] != post["slug"]][:3]
+    more = "".join(post_card(pp) for pp in others)
+    body = f"""{header()}
+<main>
+<article>
+<section class="page-hero"><div class="wrap"><nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><a href="/blog/">Блог</a><span>›</span><span>{html.escape(post['h1'][:60])}…</span></nav>
+<div class="stack" style="gap:16px;margin-top:24px;max-width:820px"><span class="small">{fmt_date(post['date'])} · {post['minutes']} хв читання · {SITE['lawyer']}</span><h1>{html.escape(post['h1'])}</h1><p class="lead" style="max-width:none">{post['lead']}</p></div></div></section>
+<section class="section"><div class="wrap narrow prose post-body">{post['body']}</div></section>
+<section class="section section--alt"><div class="wrap grid grid-2" style="align-items:start">
+  <div class="stack"><h2>Не виходить самостійно?</h2><p class="lead" style="max-width:none">Опишіть ситуацію — скажемо чесно, чи варто платити, і якщо так, назвемо ціну та строк.</p>
+  <div class="stack" style="gap:12px">{related}</div></div>
+  {form(post['cta_doc'], 'Отримати розрахунок')}
+</div></section>
+</article>
+<section class="section"><div class="wrap stack-lg"><h2>Ще з блогу</h2><div class="grid grid-3">{more}</div></div></section>
+</main>
+{footer()}"""
+    write(f"blog/{post['slug']}/index.html", h + body)
+
 # ---------------------------------------------------------------- misc files
 def build_misc():
-    urls = ["/"] + [f"/{p['slug']}/" for p in PAGES]
+    urls = ["/"] + [f"/{p['slug']}/" for p in PAGES] + ["/blog/"] + [f"/blog/{p['slug']}/" for p in POSTS]
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
         f"  <url><loc>{SITE['domain']}{u}</loc><lastmod>{TODAY}</lastmod><changefreq>monthly</changefreq><priority>{'1.0' if u == '/' else '0.8'}</priority></url>\n" for u in urls) + "</urlset>\n"
     write("sitemap.xml", sm)
@@ -583,4 +686,7 @@ if __name__ == "__main__":
     build_index()
     for p in PAGES:
         build_page(p)
+    build_blog_index()
+    for p in POSTS:
+        build_post(p)
     build_misc()
