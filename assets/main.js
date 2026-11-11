@@ -1,7 +1,7 @@
 /* Документи з України — site scripts */
 (function () {
   // ---- CONFIG: замініть на свої значення -------------------------------
-  var FORM_ENDPOINT = "https://formspree.io/f/YOUR_FORM_ID"; // Formspree / Basin / свій бекенд
+  var FORM_ENDPOINT = "https://formspree.io/f/xppdzqra"; // Formspree / Basin / свій бекенд
   var TELEGRAM_URL = "https://t.me/rozlucheni";
   var WHATSAPP_URL = "https://wa.me/380XXXXXXXXX";
   // ----------------------------------------------------------------------
