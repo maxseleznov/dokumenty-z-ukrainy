@@ -177,7 +177,32 @@ ul,ol{margin:0}
 .tbl tbody tr:hover td{background:#FAFBFD}
 .tbl th{font-weight:600;color:var(--muted-foreground);font-size:12px;text-transform:uppercase;letter-spacing:.06em;background:var(--muted)}
 .tbl th.accent{color:var(--primary)}
-.tbl td:first-child{font-weight:600}
+.tbl td:first-child,.tbl th[scope=row]{font-weight:600}
+.tbl th[scope=row]{color:var(--foreground);font-size:15px;text-transform:none;letter-spacing:0;background:transparent}
+
+/* scrollable tables: edge fade + hint on small screens */
+.scrollable{position:relative}
+@media (max-width:900px){
+  .scrollable{background:
+    linear-gradient(90deg,var(--card) 30%,rgba(255,255,255,0)) ,
+    linear-gradient(90deg,rgba(255,255,255,0),var(--card) 70%) 100% 0,
+    radial-gradient(farthest-side at 0 50%,rgba(15,23,41,.14),rgba(0,0,0,0)),
+    radial-gradient(farthest-side at 100% 50%,rgba(15,23,41,.14),rgba(0,0,0,0)) 100% 0;
+    background-repeat:no-repeat;background-size:40px 100%,40px 100%,14px 100%,14px 100%;background-attachment:local,local,scroll,scroll}
+  .scrollable::after{content:attr(data-hint);display:block;position:sticky;left:0;padding:8px 14px;font-size:12px;color:var(--muted-foreground);background:var(--muted);border-top:1px solid var(--border)}
+  /* comparison table → stacked cards */
+  .compare-wrap{overflow:visible;border:0;box-shadow:none;background:none}
+  .compare,.compare tbody,.compare tr,.compare td,.compare th{display:block;min-width:0}
+  .compare thead{display:none}
+  .compare tr{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-xs);margin-bottom:10px;overflow:hidden}
+  .compare th[scope=row]{padding:12px 16px 8px;font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--foreground);background:var(--muted);border-bottom:1px solid var(--border);text-transform:none;letter-spacing:0}
+  .compare td{border:0;padding:10px 16px 10px 16px;font-size:15px;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start}
+  .compare td::before{content:attr(data-label);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding-top:3px;white-space:nowrap}
+  .compare td.win{background:var(--primary-soft);border-top:1px solid color-mix(in srgb,var(--primary) 12%,transparent)}
+  .compare td.win::before{color:var(--primary)}
+  .compare td:first-of-type{font-weight:400}
+}
+@media (min-width:901px){.compare td.win{background:#FAFBFF}}
 
 /* ---------- cards ---------- */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:26px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow-xs);transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease),border-color var(--dur) var(--ease)}
