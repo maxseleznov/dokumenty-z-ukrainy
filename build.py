@@ -217,7 +217,7 @@ def build_index():
   <div class="wrap grid grid-2">
     <div class="stack" style="gap:24px">
       <span class="pill" style="color:var(--ink-2)"><span style="color:var(--accent);display:inline-flex">{ICON['globe']}</span>Для українців за кордоном та складних випадків в Україні</span>
-      <h1>Документи з України — <span style="color:var(--primary)">без поїздки</span> і без довіреності</h1>
+      <h1>Документи з України — <span style="color:var(--primary)">без поїздки</span> і довіреності</h1>
       <p class="lead">Повторні свідоцтва ДРАЦС, витяги, витяг про несудимість, РНОКПП. Адвокат отримує документ в Україні, ставить апостиль, робить переклад і відправляє вам у будь-яку країну.</p>
       <div class="cta-row"><a class="btn btn-primary" href="#form">Дізнатися вартість і строки</a><a class="btn btn-secondary" href="#diia">Можу зробити сам?</a></div>
       <ul class="checks">
