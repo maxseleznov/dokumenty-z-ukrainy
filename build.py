@@ -217,14 +217,15 @@ def build_index():
   <div class="wrap grid grid-2">
     <div class="stack" style="gap:24px">
       <span class="pill" style="color:var(--ink-2)"><span style="color:var(--accent);display:inline-flex">{ICON['globe']}</span>Для українців за кордоном та складних випадків в Україні</span>
-      <h1>Свідоцтва з ДРАЦС та витяг про несудимість — отримаємо за вас в Україні</h1>
-      <p class="lead">Без нотаріальної довіреності й поїздки в консульство: адвокат діє за ордером, отримує документ у ДРАЦС чи МВС, ставить апостиль, робить переклад і відправляє вам у будь-яку країну.</p>
+      <h1>Документи з України — <span style="color:var(--primary)">без поїздки</span> і без довіреності</h1>
+      <p class="lead">Повторні свідоцтва ДРАЦС, витяги, витяг про несудимість, РНОКПП. Адвокат отримує документ в Україні, ставить апостиль, робить переклад і відправляє вам у будь-яку країну.</p>
       <div class="cta-row"><a class="btn btn-primary" href="#form">Дізнатися вартість і строки</a><a class="btn btn-secondary" href="#diia">Можу зробити сам?</a></div>
       <ul class="checks">
         <li><span style="color:var(--accent)">{ICON['check']}</span>Повноваження за адвокатським ордером — довіреність не потрібна</li>
         <li><span style="color:var(--accent)">{ICON['check']}</span>Працюємо зі старими актовими записами, яких немає в Дії</li>
         <li><span style="color:var(--accent)">{ICON['check']}</span>Апостиль, засвідчений переклад і доставка DHL / Укрпоштою</li>
       </ul>
+      <p class="small" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:4px"><span>Адвокатське бюро, з 2017</span><span aria-hidden="true">·</span><span>35+ країн доставки</span><span aria-hidden="true">·</span><span>2 000+ документів на рік</span></p>
     </div>
     {form()}
   </div>
