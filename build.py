@@ -18,6 +18,8 @@ SITE = {
     "phone": "+380 93 768 84 16",
     "phone_raw": "+380937688416",
     "telegram": "https://t.me/Online_Advokat_UA",
+    "whatsapp": "https://wa.me/380937688416",
+    "viber": "viber://chat?number=%2B380937688416",
     "unba": "https://erau.unba.org.ua/profile/58196",
     "instagram": "https://www.instagram.com/rozlucheni/",
     "facebook": "https://www.facebook.com/RozirvannyaShlubuOnline",
@@ -131,6 +133,8 @@ def footer():
       <a href="tel:{SITE['phone_raw']}">{SITE['phone']}</a>
       <a href="mailto:{SITE['email']}">{SITE['email']}</a>
       <a href="{SITE['telegram']}" rel="noopener" target="_blank">Telegram</a>
+      <a href="{SITE['whatsapp']}" rel="noopener" target="_blank">WhatsApp</a>
+      <a href="{SITE['viber']}" rel="noopener">Viber</a>
       <a href="{SITE['instagram']}" rel="noopener" target="_blank">Instagram</a>
       <a href="{SITE['facebook']}" rel="noopener" target="_blank">Facebook</a>
       <a href="{SITE['youtube']}" rel="noopener" target="_blank">YouTube</a>
@@ -156,7 +160,7 @@ def form(selected=None, heading="Розрахунок вартості"):
   <input class="honey" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
   <div class="form-status" role="status" aria-live="polite"></div>
   <button class="btn btn-primary" type="submit">Отримати розрахунок</button>
-  <p class="form-alt">або напишіть одразу в <a href="{SITE['telegram']}" rel="noopener" target="_blank">Telegram</a></p>
+  <p class="form-alt">або напишіть одразу: <a href="{SITE['telegram']}" rel="noopener" target="_blank">Telegram</a> · <a href="{SITE['whatsapp']}" rel="noopener" target="_blank">WhatsApp</a> · <a href="{SITE['viber']}" rel="noopener">Viber</a></p>
   <p class="form-note">Надсилаючи заявку, ви погоджуєтесь на обробку персональних даних для підготовки відповіді.</p>
 </form>"""
 
