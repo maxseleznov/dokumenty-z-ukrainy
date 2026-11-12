@@ -28,6 +28,11 @@ SITE = {
 }
 OUT = os.path.dirname(os.path.abspath(__file__))
 TODAY = datetime.date.today().isoformat()
+import hashlib
+def _v(rel):
+    try: return hashlib.md5(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), rel),"rb").read()).hexdigest()[:8]
+    except FileNotFoundError: return "0"
+ASSET_V = {"css": _v("assets/style.css"), "js": _v("assets/main.js"), "fonts": _v("assets/fonts.css")}
 
 # ---------------------------------------------------------------- SVG icons
 ICON = {
@@ -84,8 +89,8 @@ def head(title, desc, path, extra_ld=None):
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/manrope-cyrillic-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/inter-cyrillic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/fonts.css">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/fonts.css?v={ASSET_V["fonts"]}">
+<link rel="stylesheet" href="/assets/style.css?v={ASSET_V["css"]}">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 </head>
 <body>
@@ -143,7 +148,7 @@ def footer():
     </div>
   </div>
 </footer>
-<script src="/assets/main.js" defer></script>
+<script src="/assets/main.js?v={ASSET_V["js"]}" defer></script>
 </body>
 </html>
 """
