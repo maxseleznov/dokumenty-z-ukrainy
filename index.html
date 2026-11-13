@@ -15,7 +15,7 @@
 <link rel="preload" href="/assets/fonts/manrope-cyrillic-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/inter-cyrillic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/fonts.css?v=1744e12b">
-<link rel="stylesheet" href="/assets/style.css?v=e0369186">
+<link rel="stylesheet" href="/assets/style.css?v=5684b352">
 <script type="application/ld+json">[{"@context": "https://schema.org", "@type": "LegalService", "name": "Документи з України", "url": "https://dokumenty-z-ukrainy.com.ua", "areaServed": "UA", "availableLanguage": ["uk"], "telephone": "+380937688416", "email": "maxseleznov@gmail.com", "sameAs": ["https://t.me/Online_Advokat_UA", "https://www.instagram.com/rozlucheni/", "https://www.facebook.com/RozirvannyaShlubuOnline", "https://www.youtube.com/@rozlucheni", "https://erau.unba.org.ua/profile/58196"], "address": {"@type": "PostalAddress", "streetAddress": "вул. А. Артинова, 46, офіс 110", "addressLocality": "Вінниця", "addressCountry": "UA"}, "description": "Отримання повторних свідоцтв ДРАЦС, витягів з реєстру актів цивільного стану та витягу про несудимість через адвоката для українців за кордоном. Апостиль, переклад, доставка."}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Чи справді не потрібна довіреність?", "acceptedAnswer": {"@type": "Answer", "text": "Так. Повторне свідоцтво або витяг може отримати представник за документом, що підтверджує повноваження адвоката (ордер), до якого додається засвідчена копія договору про правову допомогу. Договір підписуємо дистанційно."}}, {"@type": "Question", "name": "Скільки це коштує?", "acceptedAnswer": {"@type": "Answer", "text": "Залежить від документа, того, чи є запис у реєстрі, терміновості, а також від апостиля, перекладу та країни доставки. Ми надсилаємо фіксовану ціну після перевірки — без прихованих доплат. Державне мито й поштові витрати показуємо окремо."}}, {"@type": "Question", "name": "Що, якщо мого запису немає в реєстрі?", "acceptedAnswer": {"@type": "Answer", "text": "Це найчастіша причина відмови в Дії для записів до початку 2000-х. Ми звертаємося до архіву відділу ДРАЦС, де реєстрували акт, і запис вносять до реєстру. Якщо книга втрачена — поновлюємо актовий запис."}}, {"@type": "Question", "name": "Чи приймуть повторне свідоцтво за кордоном?", "acceptedAnswer": {"@type": "Answer", "text": "Повторне свідоцтво має таку саму силу, як оригінал. Для подання в іноземні установи зазвичай потрібен апостиль і переклад — скажіть країну, і ми підберемо потрібний варіант (апостиль, подвійний апостиль або консульська легалізація)."}}, {"@type": "Question", "name": "Чи можна отримати витяг про несудимість швидше, ніж у Дії?", "acceptedAnswer": {"@type": "Answer", "text": "Строк формування витягу встановлює МВС, і ми його не «прискорюємо». Наша цінність — паперовий витяг з апостилем і перекладом, відправлений вам за кордон, або отримання для тих, хто не має доступу до Дії."}}]}]</script>
 </head>
 <body>
@@ -180,6 +180,19 @@
     </div>
   </div>
 </footer>
-<script src="/assets/main.js?v=bb87882b" defer></script>
+<template id="lead-form-tpl"><form class="card-form" data-tpl="1" data-lead method="post" action="#">
+  <div class="stack" style="gap:4px">
+    <h2>Розрахунок вартості</h2>
+    <p class="muted">Напишемо протягом робочого дня з ціною і строком. Деталі уточнимо в листуванні.</p>
+  </div>
+  <div class="field"><label for="f-doc">Який документ потрібен</label><select id="f-doc" name="doc"><option value="narodzhennya">Повторне свідоцтво про народження</option><option value="shlyub">Повторне свідоцтво про шлюб</option><option value="rozirvannya">Свідоцтво / витяг про розірвання шлюбу</option><option value="smert">Повторне свідоцтво про смерть</option><option value="vytyag">Витяг з ДРАЦС</option><option value="nesudymist">Витяг про несудимість</option><option value="rnokpp">РНОКПП (ідентифікаційний код)</option><option value="kilka">Кілька документів / не знаю</option></select></div>
+  <div class="field"><label for="f-contact">Ваш Telegram, WhatsApp або email</label><input id="f-contact" name="contact" type="text" placeholder="+380… або @нікнейм" required autocomplete="off"></div>
+  <input class="honey" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <div class="form-status" role="status" aria-live="polite"></div>
+  <button class="btn btn-primary" type="submit">Отримати розрахунок</button>
+  <p class="form-alt">або напишіть одразу: <a href="https://t.me/Online_Advokat_UA" rel="noopener" target="_blank">Telegram</a> · <a href="https://wa.me/380937688416" rel="noopener" target="_blank">WhatsApp</a> · <a href="viber://chat?number=%2B380937688416" rel="noopener">Viber</a></p>
+  <p class="form-note">Надсилаючи заявку, ви погоджуєтесь на обробку персональних даних для підготовки відповіді.</p>
+</form></template>
+<script src="/assets/main.js?v=b724e319" defer></script>
 </body>
 </html>

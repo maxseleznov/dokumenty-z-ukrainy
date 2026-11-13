@@ -72,32 +72,43 @@
   var doc = new URLSearchParams(location.search).get("doc");
   if (doc) $$("select[name=doc]").forEach(function (s) { for (var i = 0; i < s.options.length; i++) if (s.options[i].value === doc) s.selectedIndex = i; });
 
-  /* ---------- mobile drawer (Vaul-like) ---------- */
+  /* ---------- lead dialog: drawer on mobile, modal on desktop ---------- */
   var mq = window.matchMedia("(max-width:900px)");
-  var sourceForm = $(".hero form[data-lead], .page-hero form[data-lead]");
-  if (sourceForm && "HTMLDialogElement" in window) {
-    var dialog = document.createElement("dialog");
+  var tpl = $("#lead-form-tpl");
+  var dialog = null;
+  if (tpl && "HTMLDialogElement" in window) {
+    dialog = document.createElement("dialog");
     dialog.className = "drawer"; dialog.setAttribute("aria-label", "Форма заявки");
     var panel = document.createElement("div"); panel.className = "drawer-panel";
     panel.innerHTML = '<div class="drawer-handle"></div><button type="button" class="drawer-close" aria-label="Закрити"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
-    var clone = sourceForm.cloneNode(true); clone.removeAttribute("id"); clone.dataset.wired = "";
+    var clone = tpl.content.firstElementChild.cloneNode(true);
     $$("[id]", clone).forEach(function (n) { var id = n.id; n.id = "d-" + id; var l = $('label[for="' + id + '"]', clone); if (l) l.htmlFor = "d-" + id; });
+    // keep the page's chosen document, if a page form exists
+    var pageSel = $("form[data-lead]:not([data-tpl]) select[name=doc]"), dSel = $("select[name=doc]", clone);
+    if (pageSel && dSel) dSel.value = pageSel.value;
     panel.appendChild(clone); dialog.appendChild(panel); document.body.appendChild(dialog);
     wireForm(clone);
     $(".drawer-close", dialog).addEventListener("click", function () { dialog.close(); });
     dialog.addEventListener("click", function (e) { if (e.target === dialog) dialog.close(); });
+  }
+  function openLead() { if (dialog) { dialog.showModal(); setTimeout(function () { var f = $("[name=contact]", dialog); }, 50); } }
+  function pageFormVisible() { var f = $("#form"); return !!f && f.offsetParent !== null; }
 
+  // every link to #form: scroll if a visible form is on the page, else open the dialog
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest('a[href="#form"], a[href$="/#form"]'); if (!a) return;
+    if (pageFormVisible() && !mq.matches) return; // native anchor scroll on desktop
+    e.preventDefault();
+    if (pageFormVisible()) { $("#form").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    openLead();
+  });
+
+  // mobile sticky bar on every page
+  if (dialog) {
     var bar = document.createElement("div"); bar.className = "sticky-cta";
     bar.innerHTML = '<a class="btn btn-secondary" href="' + TELEGRAM_URL + '" rel="noopener" target="_blank">Telegram</a><button type="button" class="btn btn-primary">Отримати розрахунок</button>';
     document.body.appendChild(bar);
-    $("button", bar).addEventListener("click", function () { dialog.showModal(); });
-
-    // on mobile, every "#form" link opens the drawer
-    document.addEventListener("click", function (e) {
-      var a = e.target.closest('a[href="#form"]'); if (!a || !mq.matches) return;
-      e.preventDefault(); dialog.showModal();
-    });
-    // hide bar when footer is visible
+    $("button", bar).addEventListener("click", function () { if (pageFormVisible()) $("#form").scrollIntoView({ behavior: "smooth", block: "start" }); else openLead(); });
     var footer = $(".footer");
     if (footer && "IntersectionObserver" in window) new IntersectionObserver(function (en) { bar.classList.toggle("hidden", en[0].isIntersecting); }, { threshold: 0.1 }).observe(footer);
   }

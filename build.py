@@ -148,6 +148,7 @@ def footer():
     </div>
   </div>
 </footer>
+<template id="lead-form-tpl">{form().replace('id="form"', 'data-tpl="1"')}</template>
 <script src="/assets/main.js?v={ASSET_V["js"]}" defer></script>
 </body>
 </html>
