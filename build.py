@@ -1,20 +1,21 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Статичний генератор сайту «Документи з України».
-Запуск: python3 build.py  →  генерує index.html, сторінки послуг, sitemap.xml.
-Весь контент — у цьому файлі (PAGES); шаблони — нижче.
-"""
-import html, json, os, datetime
+"""Генератор статичного сайту «Документи з України». Запуск: python3 build.py"""
+import os, html, json, datetime, hashlib
+from pages_data import PAGES as SERVICE_PAGES
+from countries import COUNTRY_PAGES
 from blog_posts import POSTS
 
 SITE = {
     "name": "Документи з України",
     "domain": "https://dokumenty-z-ukrainy.com.ua",
-    "base": "",  # власний домен; для github.io-підпапки було "/dokumenty-z-ukrainy"
-    "lawyer": "Адвокатське бюро «Селезньов та Партнери»",
+    "lawyer": "Адвокатське бюро «Селезньов і партнери»",
+    "lawyer_short": "АБ «Селезньов і партнери»",
+    "person": "Максим Селезньов",
     "cert": "000208",
     "city": "м. Вінниця, вул. А. Артинова, 46, офіс 110",
     "offices": "Вінниця · Київ · Харків",
-    "email": "maxseleznov@gmail.com",
+    "email": os.environ.get("SITE_EMAIL", ""),  # публічний email задається змінною середовища
     "phone": "+380 93 768 84 16",
     "phone_raw": "+380937688416",
     "telegram": "https://t.me/Online_Advokat_UA",
@@ -24,637 +25,498 @@ SITE = {
     "instagram": "https://www.instagram.com/rozlucheni/",
     "facebook": "https://www.facebook.com/RozirvannyaShlubuOnline",
     "youtube": "https://www.youtube.com/@rozlucheni",
+    "reviews": "https://razvod-online.com.ua/feedback",
     "cases": "2 000+",
 }
 OUT = os.path.dirname(os.path.abspath(__file__))
 TODAY = datetime.date.today().isoformat()
-import hashlib
+PAGES = SERVICE_PAGES + COUNTRY_PAGES
+
 def _v(rel):
-    try: return hashlib.md5(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), rel),"rb").read()).hexdigest()[:8]
+    try: return hashlib.md5(open(os.path.join(OUT, rel), "rb").read()).hexdigest()[:8]
     except FileNotFoundError: return "0"
 ASSET_V = {"css": _v("assets/style.css"), "js": _v("assets/main.js"), "fonts": _v("assets/fonts.css")}
 
-# ---------------------------------------------------------------- SVG icons
-ICON = {
-    "check": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>',
-    "doc": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
-    "file": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4"/><path d="M8 13h8M8 17h8"/></svg>',
-    "shield": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
-    "globe": '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
-    "chat": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.1A8.4 8.4 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 9 8.4z"/></svg>',
-    "logo": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13l2 2 4-4"/></svg>',
-    "id": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.2"/><path d="M5.5 17a3.5 3.5 0 0 1 7 0M14 10h4M14 14h4"/></svg>',
-    "menu": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
-}
-
+# ---------------------------------------------------------------- ціни та строки (єдине джерело)
+# value, назва в селекті, група для конфігуратора
 DOC_OPTIONS = [
-    ("narodzhennya", "Повторне свідоцтво про народження"),
-    ("shlyub", "Повторне свідоцтво про шлюб"),
-    ("rozirvannya", "Свідоцтво / витяг про розірвання шлюбу"),
-    ("smert", "Повторне свідоцтво про смерть"),
-    ("vytyag", "Витяг з ДРАЦС"),
-    ("nesudymist", "Витяг про несудимість"),
-    ("rnokpp", "РНОКПП (ідентифікаційний код)"),
-    ("kilka", "Кілька документів / не знаю"),
+    ("narodzhennya", "Свідоцтво про народження", "svid"),
+    ("shlyub", "Свідоцтво про шлюб", "svid"),
+    ("rozirvannya", "Свідоцтво про розірвання шлюбу", "svid"),
+    ("smert", "Свідоцтво про смерть", "svid"),
+    ("vytyag", "Витяг з ДРАЦС", "vyt"),
+    ("nesudymist", "Витяг про несудимість", "nes"),
+    ("rnokpp", "РНОКПП (ідентифікаційний код)", "rnokpp"),
+    ("apostyl", "Апостиль на мій документ", "apostyl"),
+    ("kilka", "Кілька документів / не знаю", "svid"),
 ]
+COUNTRIES = ["Польща", "Німеччина", "Чехія", "Італія", "Іспанія", "Канада", "США", "Велика Британія", "Інша країна"]
+PRICE = {"svid": 80, "vyt": 80, "nes": 100, "rnokpp": 50, "apostyl": 50, "delivery": 60}
+PACK = {"p1": PRICE["svid"], "p2": PRICE["svid"] + PRICE["apostyl"], "p3": PRICE["svid"] + PRICE["apostyl"] + PRICE["delivery"]}
 
-NAV = [("/#docs", "Документи"), ("/#how", "Як це працює"), ("/dlya-ukraintsiv-za-kordonom/", "Якщо ви за кордоном"), ("/polshcha/", "Польща"), ("/apostyl/", "Апостиль"), ("/blog/", "Блог")]
+MARK_PATHS = '<path class="ln" d="M58 30L34.29 42.77Q32 44 29.71 42.77L6 30L6.00 52.00Q6 56 10.00 56.00L54.00 56.00Q58 56 58.00 52.00L58 30L48.00 30.00Q45 30 45.00 27.00L45.00 9.20Q45 6 41.80 6.00L22.20 6.00Q19 6 19.00 9.20L19.00 27.00Q19 30 16.00 30.00L6 30"/><path class="uap" fill-rule="evenodd" transform="translate(32 19) scale(1.06) translate(-32 -19)" d="M29.070 14.0H31.021V20.276Q31.021 21.372 30.554 22.123Q30.088 22.873 29.269 23.252Q28.450 23.630 27.387 23.630Q26.323 23.630 25.498 23.252Q24.672 22.873 24.206 22.123Q23.739 21.372 23.739 20.276V14.0H25.697V20.276Q25.697 20.916 25.899 21.320Q26.101 21.725 26.483 21.914Q26.865 22.103 27.387 22.103Q27.922 22.103 28.297 21.914Q28.672 21.725 28.871 21.320Q29.070 20.916 29.070 20.276Z M38.903 23.5 38.244 21.496H34.831L34.172 23.5H32.091L35.621 14.0H37.441L40.991 23.5ZM37.741 19.963 36.534 16.303 35.334 19.963Z"/>'
+MARK = '<svg aria-hidden="true" viewBox="0 0 64 64"><use href="#mark"/></svg>'
+ICO_TG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="#1d93d2" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.6 6.8-1.6 7.6c-.1.5-.4.7-.9.4l-2.4-1.8-1.2 1.1c-.1.1-.2.2-.5.2l.2-2.5 4.5-4.1c.2-.2 0-.3-.3-.1l-5.6 3.5-2.4-.8c-.5-.2-.5-.5.1-.8l9.4-3.6c.4-.2.8.1.7.9z"/></svg>'
+ICO_WA = '<svg width="18" height="18" viewBox="0 0 24 24" fill="#1fa855" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8c.1.2 1.9 2.9 4.6 4 1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3z"/></svg>'
+ICO_VB = '<svg width="18" height="18" viewBox="0 0 24 24" fill="#6a56e0" aria-hidden="true"><path d="M12 1.5C6.3 1.5 2.6 4.7 2.6 10.2v3.4c0 3.4 1.6 5.8 4.2 7v2.6c0 .5.5.7.9.4l2.7-2.5h1.6c5.7 0 9.4-3.2 9.4-8.7v-2.2c0-5.5-3.7-8.7-9.4-8.7zm4.3 12.6c-.3.6-1.4 1.2-2 1.2-.6.1-1.1 0-3.4-1-2.7-1.2-4.4-4-4.5-4.2-.2-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.3c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.6.8c-.1.1-.2.3-.1.5.4.8 1.1 1.7 1.9 2.3.3.2.5.3.7.4.2.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l2 1c.3.1.5.2.5.4 0 .1 0 .7-.2 1z"/></svg>'
+
+NAV = [("/#docs", "Документи"), ("/#diia", "Коли не Дія"), ("/#countries", "Країни"), ("/#price", "Вартість"), ("/blog/", "Блог")]
 
 # ---------------------------------------------------------------- partials
-def head(title, desc, path, extra_ld=None):
+def head(title, desc, path, extra_ld=None, noindex=False):
     url = SITE["domain"] + path
     ld = [{
         "@context": "https://schema.org", "@type": "LegalService",
-        "name": SITE["name"], "url": SITE["domain"],
-        "areaServed": "UA", "availableLanguage": ["uk"],
-        "telephone": SITE["phone_raw"], "email": SITE["email"],
+        "name": SITE["name"], "url": SITE["domain"], "image": SITE["domain"] + "/assets/og.png",
+        "areaServed": "UA", "availableLanguage": ["uk"], "priceRange": "від 50 €",
+        "telephone": SITE["phone_raw"],
         "sameAs": [SITE["telegram"], SITE["instagram"], SITE["facebook"], SITE["youtube"], SITE["unba"]],
         "address": {"@type": "PostalAddress", "streetAddress": "вул. А. Артинова, 46, офіс 110", "addressLocality": "Вінниця", "addressCountry": "UA"},
         "description": "Отримання повторних свідоцтв ДРАЦС, витягів з реєстру актів цивільного стану та витягу про несудимість через адвоката для українців за кордоном. Апостиль, переклад, доставка.",
     }]
+    if SITE["email"]: ld[0]["email"] = SITE["email"]
     if extra_ld: ld += extra_ld
+    robots = '<meta name="robots" content="noindex,nofollow">\n' if noindex else ""
+    t, d = html.escape(title), html.escape(desc)
     return f"""<!doctype html>
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title>
-<meta name="description" content="{html.escape(desc)}">
-<link rel="canonical" href="{url}">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{t}</title>
+<meta name="description" content="{d}">
+{robots}<link rel="canonical" href="{url}">
+<meta name="theme-color" content="#f3ebdf">
 <meta property="og:type" content="website">
-<meta property="og:title" content="{html.escape(title)}">
-<meta property="og:description" content="{html.escape(desc)}">
+<meta property="og:site_name" content="{SITE['name']}">
+<meta property="og:title" content="{t}">
+<meta property="og:description" content="{d}">
 <meta property="og:url" content="{url}">
 <meta property="og:locale" content="uk_UA">
+<meta property="og:image" content="{SITE['domain']}/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Документи з України — без поїздки і довіреності">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{t}">
+<meta name="twitter:description" content="{d}">
+<meta name="twitter:image" content="{SITE['domain']}/assets/og.png">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="/assets/fonts/manrope-cyrillic-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/inter-cyrillic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/montserrat-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/fonts.css?v={ASSET_V["fonts"]}">
 <link rel="stylesheet" href="/assets/style.css?v={ASSET_V["css"]}">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 </head>
 <body>
+<div class="deco" aria-hidden="true"><i class="dome"></i><i class="s1"></i><i class="s2"></i><i class="s3"></i><i class="k k1"></i><i class="k k2"></i></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="mark" viewBox="0 0 64 64">{MARK_PATHS}</symbol></defs></svg>
 """
+
+def brand():
+    return f'<a class="brand" href="/" aria-label="{SITE["name"]} — на головну"><span class="logo">{MARK}</span><span><b>Документи</b><span> з України</span></span></a>'
 
 def header():
     nav = "".join(f'<a href="{h}">{t}</a>' for h, t in NAV)
-    return f"""<header class="header">
-  <div class="wrap">
-    <a class="logo" href="/"><span class="logo-mark">{ICON['logo']}</span>{SITE['name']}</a>
-    <nav class="nav" id="nav" aria-label="Головне меню">{nav}</nav>
-    <div class="header-cta">
-      <a class="btn-text" href="{SITE['telegram']}" rel="noopener" target="_blank">{ICON['chat']} Telegram</a>
-      <a class="btn btn-primary btn-sm" href="#form">Залишити заявку</a>
-      <button class="nav-toggle" aria-label="Меню" aria-expanded="false" aria-controls="nav">{ICON['menu']}</button>
-    </div>
-  </div>
-</header>
+    return f"""<header class="top"><div class="nav glass">
+{brand()}
+<nav class="menu" aria-label="Головне меню">{nav}</nav>
+<div class="navr"><a class="btn sm" href="#form"><span class="full">Залишити заявку</span><span class="short">Заявка</span></a>
+<button class="burger" aria-label="Меню" aria-expanded="false" aria-controls="mnav"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+<nav class="mnav" id="mnav" aria-label="Меню">{nav}<a href="/dlya-ukraintsiv-za-kordonom/">Якщо ви за кордоном</a><a href="/apostyl/">Апостиль</a></nav>
+</div></header>
 """
 
-def footer():
-    return f"""<footer class="footer">
-  <div class="wrap">
-    <div class="footer-col">
-      <strong>{SITE['name']}</strong>
-      <span>{SITE['lawyer']}, свідоцтво про право на заняття адвокатською діяльністю № {SITE['cert']}. <a href="{SITE['unba']}" rel="noopener" target="_blank">Профіль у реєстрі адвокатів НААУ</a>. Офіси: {SITE['offices']}.</span>
-      <span>{SITE['city']}</span>
-      <span>Повторна видача свідоцтв і витягів ДРАЦС та витяг про несудимість є державними послугами, доступними на порталі Дія. Ми надаємо правову допомогу та представництво, а не доступ до цих послуг.</span>
-      <span>© {datetime.date.today().year}</span>
-    </div>
-    <div class="footer-col">
-      <a href="/svidotstvo-pro-narodzhennya/">Свідоцтво про народження</a>
-      <a href="/svidotstvo-pro-shlyub/">Свідоцтво про шлюб</a>
-      <a href="/svidotstvo-pro-rozirvannya-shlyubu/">Розірвання шлюбу</a>
-      <a href="/svidotstvo-pro-smert/">Свідоцтво про смерть</a>
-      <a href="/vytyag-dracs/">Витяг з ДРАЦС</a>
-      <a href="/vytyag-pro-nesudymist/">Витяг про несудимість</a>
-      <a href="/rnokpp/">РНОКПП</a>
-      <a href="/apostyl/">Апостиль</a>
-      <a href="/polshcha/">Для Польщі</a>
-    </div>
-    <div class="footer-col">
-      <a href="/blog/">Блог</a>
-      <a href="/privacy.html">Політика конфіденційності</a>
-      <a href="tel:{SITE['phone_raw']}">{SITE['phone']}</a>
-      <a href="mailto:{SITE['email']}">{SITE['email']}</a>
-      <a href="{SITE['telegram']}" rel="noopener" target="_blank">Telegram</a>
-      <a href="{SITE['whatsapp']}" rel="noopener" target="_blank">WhatsApp</a>
-      <a href="{SITE['viber']}" rel="noopener">Viber</a>
-      <a href="{SITE['instagram']}" rel="noopener" target="_blank">Instagram</a>
-      <a href="{SITE['facebook']}" rel="noopener" target="_blank">Facebook</a>
-      <a href="{SITE['youtube']}" rel="noopener" target="_blank">YouTube</a>
-      <a href="https://razvod-online.com.ua" rel="noopener">Розірвання шлюбу онлайн</a>
-      <a href="https://alimenty-online.com.ua" rel="noopener">Аліменти онлайн</a>
-    </div>
-  </div>
-</footer>
-<template id="lead-form-tpl">{form().replace('id="form"', 'data-tpl="1"')}</template>
+def lead_form(selected=None, country=None, ids=True):
+    opts = "".join(f'<option value="{v}"{" selected" if v == selected else ""}>{t}</option>' for v, t, _ in DOC_OPTIONS)
+    copts = '<option value="">Країна, де ви зараз</option>' + "".join(f'<option{" selected" if c == country else ""}>{c}</option>' for c in COUNTRIES)
+    return f"""<form class="lead-form{' glass' if ids else ''}" data-lead method="post" action="#">
+<input type="text" name="name" placeholder="Ім'я" autocomplete="name" aria-label="Ім'я">
+<select name="doc" aria-label="Який документ потрібен">{opts}</select>
+<select name="country" aria-label="Країна, де ви зараз">{copts}</select>
+<input type="text" name="contact" placeholder="Telegram, WhatsApp або телефон" required autocomplete="tel" aria-label="Ваш контакт">
+<input class="honey" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+<div class="form-status" role="status" aria-live="polite"></div>
+<div class="fb"><span class="note">Надсилаючи заявку, ви погоджуєтесь на <a href="/privacy.html">обробку персональних даних</a>.</span><button class="btn" type="submit">Надіслати →</button></div>
+</form>"""
+
+def messengers():
+    return f'<a href="{SITE["telegram"]}" target="_blank" rel="noopener">Telegram</a><a href="{SITE["whatsapp"]}" target="_blank" rel="noopener">WhatsApp</a><a href="{SITE["viber"]}">Viber</a>'
+
+def form_section(selected=None, country=None):
+    return f"""<section class="s" id="form"><div class="wrap fgrid">
+<div><span class="eyebrow">Заявка</span><h2>Опишіть ситуацію — відповімо за 15 хвилин</h2><p class="muted" style="max-width:420px">У робочий час, у вашому месенджері. Напишемо точну ціну, строк і чи варто взагалі платити — іноді вистачить Дії.</p>
+<div class="msgs">або напишіть одразу: {messengers()}</div></div>
+{lead_form(selected, country)}
+</div></section>
+"""
+
+def cfg(selected="narodzhennya", country="Польща"):
+    """Картка-конфігуратор: документ + країна → строк і ціна → дії."""
+    if selected == "kilka": selected = "narodzhennya"
+    opts = "".join(f'<option value="{v}" data-k="{k}"{" selected" if v == selected else ""}>{t}</option>' for v, t, k in DOC_OPTIONS if v != "kilka")
+    copts = "".join(f'<option{" selected" if c == country else ""}>{c}</option>' for c in COUNTRIES)
+    k = next(k for v, _, k in DOC_OPTIONS if v == selected)
+    return f"""<div class="cfg solid">
+<div class="cfghead"><span>Заявка</span><span class="live">відповімо за 15 хвилин</span></div>
+<p class="cfgt">Що і куди потрібно отримати</p>
+<div class="sel2">
+<label class="pin"><select id="cDoc" aria-label="Документ">{opts}</select></label>
+<label class="pin"><select id="cCountry" aria-label="Країна">{copts}</select></label>
+</div>
+<div class="term" aria-live="polite"><div><small>Строк</small><b id="cTerm">від 1 <span>роб. дня</span></b></div><div><small>Ціна</small><b id="cPrice">від {PRICE[k]} <span>€</span></b></div><div class="meta" id="cMeta">За ордером адвоката, без довіреності й консульства.</div></div>
+<div class="acts"><a class="btn" href="#form">Залишити заявку</a>
+<div class="mrow"><a class="btn ghost msg" href="{SITE['telegram']}" target="_blank" rel="noopener" id="cTg">{ICO_TG}Telegram</a><a class="btn ghost msg" href="{SITE['whatsapp']}" target="_blank" rel="noopener" id="cWa">{ICO_WA}WhatsApp</a><a class="btn ghost msg" href="{SITE['viber']}" id="cVb">{ICO_VB}Viber</a></div></div>
+<div class="who">Адвокат {SITE['person']} · свідоцтво № {SITE['cert']} · <a href="{SITE['unba']}" target="_blank" rel="noopener">перевірити в ЄРАУ</a></div>
+</div>"""
+
+def lawyer_block():
+    return f"""<section class="s" id="lawyer"><div class="wrap">
+<div class="law dark">
+<div class="ph"><img src="/assets/img/lawyer.webp" width="200" height="200" alt="Адвокат {SITE['person']}" loading="lazy" decoding="async"></div>
+<div style="flex:1;min-width:230px"><span class="eyebrow">Ваш адвокат</span><h2 style="margin-bottom:.3em">{SITE['person']}</h2><p>Адвокат з 2017 року, керівник {SITE['lawyer'].replace('Адвокатське бюро', 'Адвокатського бюро')}. Свідоцтво про право на заняття адвокатською діяльністю № {SITE['cert']}. Офіси у Вінниці, Києві та Харкові.</p><p>З 2022 року надсилаємо документи українцям за кордоном — уже в 35+ країн. Усе листування захищене адвокатською таємницею.</p><div class="chips"><a href="{SITE['unba']}" target="_blank" rel="noopener">Перевірити в ЄРАУ ↗</a><span>Адвокатська таємниця</span><span>Договір і ордер</span><span>{SITE['offices']}</span></div></div>
+</div>
+<div class="trust">
+<div class="glass"><b>Фотозвіт</b><span>Надсилаємо фото готового документа одразу після отримання і квитанцію про відправку з трек-номером.</span></div>
+<div class="glass"><b>Оплата 50 / 50</b><span>Половина на старті, друга половина — після того, як ви побачите фото готового документа.</span></div>
+<div class="glass"><b>Відгуки клієнтів</b><span>Понад вісім років бюро веде справи онлайн. <a href="{SITE['reviews']}" target="_blank" rel="noopener">Відгуки про нашу роботу</a> — на сайті сервісу розлучень.</span></div>
+<div class="glass"><b>Чесна відмова</b><span>Якщо документ можна отримати в Дії безкоштовно або його немає в реєстрах — скажемо одразу, до оплати.</span></div>
+</div>
+</div></section>
+"""
+
+def services_strip():
+    return f"""<section class="s"><div class="wrap">
+<span class="eyebrow">Інші сервіси бюро</span>
+<h2 style="font-size:clamp(1.5rem,3.5vw,2.1rem)">Нам уже довіряють онлайн</h2>
+<div class="svc">
+<a class="glass" href="https://razvod-online.com.ua" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">💔</span><span><b>РозірванняШлюбу.Online</b><span>Розлучення через суд дистанційно, зокрема коли один із подружжя за кордоном</span></span></a>
+<a class="glass" href="https://alimenty-online.com.ua" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">👨‍👧</span><span><b>Аліменти.Online</b><span>Стягнення аліментів без вашої присутності в суді</span></span></a>
+<a class="glass" href="https://deposit-documents.com/" target="_blank" rel="noopener"><span class="ic" aria-hidden="true">🗂️</span><span><b>Deposit Documents</b><span>Підготовка документів для повернення депозиту</span></span></a>
+</div>
+</div></section>
+"""
+
+def footer(selected=None, country=None):
+    email = f'<li><a href="mailto:{SITE["email"]}">{SITE["email"]}</a></li>' if SITE["email"] else ""
+    return f"""<footer class="ft"><div class="wrap">
+<div class="fcols">
+<div>{brand()}
+<p style="margin:12px 0 0">{SITE['lawyer']}, свідоцтво про право на заняття адвокатською діяльністю № {SITE['cert']}. <a href="{SITE['unba']}" target="_blank" rel="noopener" style="text-decoration:underline">Профіль у реєстрі адвокатів НААУ</a>.</p></div>
+<div><b>Документи</b><ul>
+<li><a href="/svidotstvo-pro-narodzhennya/">Свідоцтво про народження</a></li>
+<li><a href="/svidotstvo-pro-shlyub/">Свідоцтво про шлюб</a></li>
+<li><a href="/svidotstvo-pro-rozirvannya-shlyubu/">Розірвання шлюбу</a></li>
+<li><a href="/svidotstvo-pro-smert/">Свідоцтво про смерть</a></li>
+<li><a href="/vytyag-dracs/">Витяг з ДРАЦС</a></li>
+<li><a href="/vytyag-pro-nesudymist/">Витяг про несудимість</a></li>
+<li><a href="/rnokpp/">РНОКПП</a></li>
+<li><a href="/apostyl/">Апостиль</a></li></ul></div>
+<div><b>Сайт</b><ul>
+<li><a href="/dlya-ukraintsiv-za-kordonom/">Якщо ви за кордоном</a></li>
+<li><a href="/polshcha/">Документи для Польщі</a></li>
+<li><a href="/#price">Вартість</a></li>
+<li><a href="/blog/">Блог</a></li>
+<li><a href="/privacy.html">Політика конфіденційності</a></li>
+<li><a href="https://razvod-online.com.ua" rel="noopener">Розірвання шлюбу онлайн</a></li>
+<li><a href="https://alimenty-online.com.ua" rel="noopener">Аліменти онлайн</a></li></ul></div>
+<div><b>Контакти</b><ul>
+<li>{SITE['city']}</li>
+<li>Офіси: {SITE['offices']}</li>
+<li><a href="tel:{SITE['phone_raw']}">{SITE['phone']}</a></li>{email}
+<li><a href="{SITE['telegram']}" target="_blank" rel="noopener">Telegram</a> · <a href="{SITE['whatsapp']}" target="_blank" rel="noopener">WhatsApp</a> · <a href="{SITE['viber']}">Viber</a></li>
+<li><a href="{SITE['instagram']}" target="_blank" rel="noopener">Instagram</a> · <a href="{SITE['facebook']}" target="_blank" rel="noopener">Facebook</a> · <a href="{SITE['youtube']}" target="_blank" rel="noopener">YouTube</a></li></ul></div>
+</div>
+<div class="copy">© 2017–{datetime.date.today().year} {SITE['lawyer_short']}. Ми не є державним органом і не продаємо документи — адвокат отримує їх для вас у встановленому законом порядку. Повторна видача свідоцтв і витягів ДРАЦС та витяг про несудимість є державними послугами, доступними на порталі Дія.</div>
+</div></footer>
+<div class="sticky"><a class="btn ghost" href="{SITE['telegram']}" target="_blank" rel="noopener">Telegram</a><a class="btn" href="#form">Залишити заявку</a></div>
+<template id="lead-form-tpl">{lead_form(selected, country, ids=False)}</template>
 <script src="/assets/main.js?v={ASSET_V["js"]}" defer></script>
 </body>
 </html>
 """
 
-def form(selected=None, heading="Розрахунок вартості"):
-    opts = "".join(f'<option value="{v}"{" selected" if v == selected else ""}>{t}</option>' for v, t in DOC_OPTIONS)
-    return f"""<form class="card-form" id="form" data-lead method="post" action="#">
-  <div class="stack" style="gap:4px">
-    <h2>{heading}</h2>
-    <p class="muted">Напишемо протягом робочого дня з ціною і строком. Деталі уточнимо в листуванні.</p>
-  </div>
-  <div class="field"><label for="f-doc">Який документ потрібен</label><select id="f-doc" name="doc">{opts}</select></div>
-  <div class="field"><label for="f-contact">Ваш Telegram, WhatsApp або email</label><input id="f-contact" name="contact" type="text" placeholder="+380… або @нікнейм" required autocomplete="off"></div>
-  <input class="honey" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-  <div class="form-status" role="status" aria-live="polite"></div>
-  <button class="btn btn-primary" type="submit">Отримати розрахунок</button>
-  <p class="form-alt">або напишіть одразу: <a href="{SITE['telegram']}" rel="noopener" target="_blank">Telegram</a> · <a href="{SITE['whatsapp']}" rel="noopener" target="_blank">WhatsApp</a> · <a href="{SITE['viber']}" rel="noopener">Viber</a></p>
-  <p class="form-note">Надсилаючи заявку, ви погоджуєтесь на обробку персональних даних для підготовки відповіді.</p>
-</form>"""
-
-def steps_block(dark=True, poa=False):
-    cls = "section section--dark" if dark else "section"
-    step2 = ("<li class=\"step\"><span class=\"step-num\">02</span><strong>Довіреність за нашим зразком</strong><p>Надсилаємо готовий текст довіреності. Ви посвідчуєте її в нотаріуса за кордоном або в консульстві й пересилаєте оригінал нам; переклад і апостиль за потреби організовуємо ми.</p></li>"
-             if poa else
-             "<li class=\"step\"><span class=\"step-num\">02</span><strong>Договір онлайн</strong><p>Підписуємо договір про правову допомогу дистанційно. На його підставі адвокат виписує ордер — довіреність не потрібна.</p></li>")
-    step3 = ("<li class=\"step\"><span class=\"step-num\">03</span><strong>Отримуємо документ</strong><p>Подаємо заяву до ДПС, за потреби — про внесення змін. Надсилаємо вам скан одразу після отримання.</p></li>"
-             if poa else
-             "<li class=\"step\"><span class=\"step-num\">03</span><strong>Отримуємо документ</strong><p>Звертаємось у ДРАЦС або МВС, за потреби — в архів. Надсилаємо вам скан одразу після отримання.</p></li>")
-    sub = "Один візит до нотаріуса з вашого боку — решту робимо ми." if poa else "Жодних поїздок, нотаріусів і черг з вашого боку."
-    return f"""<section class="{cls}" id="how">
-  <div class="wrap stack-lg">
-    <div class="stack" style="gap:10px;max-width:700px"><h2>Як це працює</h2><p class="lead" style="color:{'#C9D0DD' if dark else 'var(--ink-2)'}">{sub}</p></div>
-    <ol class="steps grid grid-4">
-      <li class="step"><span class="step-num">01</span><strong>Заявка й розрахунок</strong><p>Ви описуєте ситуацію. Ми перевіряємо, чи є запис у реєстрі, і надсилаємо ціну, строк та список потрібних даних.</p></li>
-      {step2}
-      {step3}
-      <li class="step"><span class="step-num">04</span><strong>{'Доставка' if poa else 'Апостиль, переклад, доставка'}</strong><p>{"За потреби робимо нотаріальну копію з перекладом і відправляємо оригінал кур'єром з трек-номером." if poa else "Проставляємо апостиль, робимо засвідчений переклад і відправляємо оригінал кур'єром з трек-номером."}</p></li>
-    </ol>
-  </div>
-</section>
-"""
-
-def faq_block(items, title="Часті питання"):
-    ds = "".join(f"<details><summary>{html.escape(q)}</summary><p>{a}</p></details>" for q, a in items)
-    return f"""<section class="section section--alt" id="faq"><div class="wrap narrow stack-lg"><h2>{title}</h2><div class="faq">{ds}</div></div></section>
+def faq_block(items, title="Питання, які ставлять перед оплатою", open_first=True):
+    ds = "".join(f'<details class="glass"{" open" if (i == 0 and open_first) else ""}><summary>{html.escape(q)}</summary><p>{a}</p></details>' for i, (q, a) in enumerate(items))
+    return f"""<section class="s" id="faq"><div class="wrap narrow"><span class="eyebrow">FAQ</span><h2>{title}</h2>{ds}</div></section>
 """
 
 def faq_ld(items):
     return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": html.unescape(a).replace("<strong>", "").replace("</strong>", "")}} for q, a in items]}
 
-def band():
-    return f"""<section class="section"><div class="wrap"><div class="band">
-  <div class="stack" style="gap:8px;max-width:620px"><h2>Опишіть ситуацію — відповімо, чи варто платити</h2><p>Якщо вам краще зробити самостійно в Дії, ми так і скажемо. Якщо ні — надішлемо ціну, строк і план.</p></div>
-  <a class="btn btn-white" href="#form">Залишити заявку</a>
-</div></div></section>
-"""
-
-# ---------------------------------------------------------------- index
-INDEX_FAQ = [
-    ("Чи справді не потрібна довіреність?", "Так. Повторне свідоцтво або витяг може отримати представник за документом, що підтверджує повноваження адвоката (ордер), до якого додається засвідчена копія договору про правову допомогу. Договір підписуємо дистанційно."),
-    ("Скільки це коштує?", "Залежить від документа, того, чи є запис у реєстрі, терміновості, а також від апостиля, перекладу та країни доставки. Ми надсилаємо фіксовану ціну після перевірки — без прихованих доплат. Державне мито й поштові витрати показуємо окремо."),
-    ("Що, якщо мого запису немає в реєстрі?", "Це найчастіша причина відмови в Дії для записів до початку 2000-х. Ми звертаємося до архіву відділу ДРАЦС, де реєстрували акт, і запис вносять до реєстру. Якщо книга втрачена — поновлюємо актовий запис."),
-    ("Чи приймуть повторне свідоцтво за кордоном?", "Повторне свідоцтво має таку саму силу, як оригінал. Для подання в іноземні установи зазвичай потрібен апостиль і переклад — скажіть країну, і ми підберемо потрібний варіант (апостиль, подвійний апостиль або консульська легалізація)."),
-    ("Чи можна отримати витяг про несудимість швидше, ніж у Дії?", "Строк формування витягу встановлює МВС, і ми його не «прискорюємо». Наша цінність — паперовий витяг з апостилем і перекладом, відправлений вам за кордон, або отримання для тих, хто не має доступу до Дії."),
+SCENE_STEPS = [
+    ("Заявка і договір онлайн", "Підписуємо договір дистанційно. Нотаріальна довіреність не потрібна — діємо за ордером адвоката."),
+    ("Отримуємо за ордером", "Звертаємось до ДРАЦС чи МВС від вашого імені. Дія і консульство не потрібні."),
+    ("Апостиль, переклад, відправка", "Надсилаємо фото готового документа, ставимо апостиль і відправляємо з трек-номером."),
+    ("Документ у вас", "Оригінал доставлено до дверей. Другу половину оплати ви вносите після фото документа."),
 ]
 
+def scene():
+    """Скрол-анімація шляху документа: Україна праворуч → країна клієнта ліворуч."""
+    lis = "".join(f'<li class="st"><span class="n">{i+1}</span><div><b>{t}</b><span class="d">{d}</span></div></li>' for i, (t, d) in enumerate(SCENE_STEPS))
+    return f"""<div class="scene" id="scene">
+<div class="stage">
+<ol class="steps">{lis}</ol>
+<svg viewBox="0 0 440 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<defs>
+<linearGradient id="gE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdfaf2"/><stop offset="1" stop-color="#e5dac3"/></linearGradient>
+<linearGradient id="gF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf7"/><stop offset="1" stop-color="#ebe0c9"/></linearGradient>
+<linearGradient id="gB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4c7ab"/><stop offset="1" stop-color="#b9aa8a"/></linearGradient>
+<linearGradient id="gP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f3eee2"/></linearGradient>
+<radialGradient id="gS" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#7aa3f5"/><stop offset="1" stop-color="#2250ad"/></radialGradient>
+<radialGradient id="gSh"><stop offset="0" stop-color="#4a3820" stop-opacity=".4"/><stop offset="1" stop-color="#4a3820" stop-opacity="0"/></radialGradient>
+</defs>
+<path id="route" class="route" d="M330 236 Q 215 120 100 236" stroke="rgba(60,45,25,.35)" stroke-width="2.5" style="stroke-dasharray:2 8"/>
+<path id="prog" class="route" d="M330 236 Q 215 120 100 236" stroke="#2f66d0" stroke-width="3.5"/>
+<g><circle cx="330" cy="236" r="12" fill="rgba(47,102,208,.16)"/><circle cx="330" cy="236" r="5" fill="#2f66d0"/><text class="lbl" x="330" y="294" text-anchor="middle">Україна</text></g>
+<g id="dest" opacity=".55"><circle id="destRing" cx="100" cy="236" r="12" fill="rgba(47,102,208,.16)"/><circle cx="100" cy="236" r="5" fill="#2f66d0"/><text class="lbl" id="destT" x="100" y="294" text-anchor="middle">Ваша країна</text></g>
+<g id="pack" transform="translate(330,236)">
+ <ellipse cx="0" cy="34" rx="52" ry="7" fill="url(#gSh)"/>
+ <g id="envg" opacity="0"><rect x="-46" y="-30" width="92" height="62" rx="7" fill="url(#gB)"/><path id="flapb" d="M-46 -30 L46 -30 L0 6Z" fill="url(#gB)" stroke="#a69877" stroke-width="1" stroke-linejoin="round"/></g>
+ <g id="doc">
+  <rect x="-48" y="-120" width="96" height="124" rx="5" fill="url(#gP)" stroke="#d6cdb8"/>
+  <text x="0" y="-98" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="9" font-weight="600" fill="#2a2724">СВІДОЦТВО</text>
+  <g stroke="#d3cbbb" stroke-width="2.5" stroke-linecap="round"><line x1="-34" y1="-82" x2="34" y2="-82"/><line x1="-34" y1="-70" x2="26" y2="-70"/><line x1="-34" y1="-58" x2="34" y2="-58"/><line x1="-34" y1="-46" x2="14" y2="-46"/></g>
+  <path id="sig" d="M-32 -22 c 6 -14 10 6 16 -4 s 8 -12 14 -2 s 10 10 18 -6 s 6 8 12 2" fill="none" stroke="#2a2724" stroke-width="1.8" stroke-linecap="round"/>
+  <g id="order" opacity="0" transform="translate(12,-36) rotate(-12)"><rect x="-30" y="-10" width="60" height="20" rx="4" fill="#fff" fill-opacity=".85" stroke="#2f66d0" stroke-width="2"/><text x="0" y="4" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="9" font-weight="600" fill="#2f66d0">ОРДЕР</text></g>
+  <g id="apo" opacity="0" transform="translate(-24,-30)"><circle r="14" fill="url(#gS)" stroke="rgba(0,0,0,.15)"/><text y="-1" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="5.5" font-weight="700" fill="#fff">APOSTILLE</text><text y="7" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="6" font-weight="700" fill="#fff">UA</text></g>
+ </g>
+ <g id="envf" opacity="0">
+  <path d="M-46 32 L46 32 L46 -30 L0 6 L-46 -30Z" fill="url(#gE)" stroke="#cdbf9f" stroke-width="1" stroke-linejoin="round"/>
+  <path id="flap" d="M-46 -30 L46 -30 L0 6Z" fill="url(#gF)" stroke="#cdbf9f" stroke-width="1" stroke-linejoin="round"/>
+  <g id="seal" opacity="0"><circle cx="0" cy="6" r="9" fill="url(#gS)" stroke="rgba(0,0,0,.2)"/><text x="0" y="9" text-anchor="middle" font-size="7" font-weight="700" fill="#fff" font-family="Montserrat,sans-serif">UA</text></g>
+ </g>
+ <g id="done" opacity="0" transform="translate(0,-56)"><rect x="-44" y="-11" width="88" height="22" rx="11" fill="#2a2724"/><text x="0" y="4" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="9" font-weight="600" fill="#fff">ДОСТАВЛЕНО ✓</text></g>
+</g>
+<text id="noteT" x="215" y="40" font-family="Montserrat,sans-serif" font-size="11" font-weight="600" fill="#2a2724" text-anchor="middle"></text>
+</svg>
+<div class="cap glass" aria-live="polite"><b id="ct"></b><span id="cd"></span></div>
+<div class="bar" id="bar"></div>
+</div>
+</div>
+"""
+
+def steps_static(poa=False):
+    s2 = ("Довіреність за нашим зразком", "Надсилаємо готовий текст. Ви посвідчуєте довіреність у нотаріуса за кордоном або в консульстві й пересилаєте оригінал нам; переклад організовуємо ми.") if poa else ("Договір онлайн", "Підписуємо договір про правову допомогу дистанційно. На його підставі адвокат виписує ордер — довіреність не потрібна.")
+    s3 = ("Отримуємо документ", "Подаємо заяву до ДПС, за потреби — про внесення змін. Фото документа надсилаємо одразу після отримання.") if poa else ("Отримуємо документ", "Звертаємось у ДРАЦС або МВС, за потреби — в архів. Фото документа надсилаємо одразу після отримання.")
+    s4 = ("Доставка", "За потреби робимо нотаріальну копію з перекладом і відправляємо оригінал кур'єром з трек-номером.") if poa else ("Апостиль, переклад, доставка", "Ставимо апостиль, організовуємо переклад і відправляємо оригінал кур'єром з трек-номером.")
+    items = [("Заявка й розрахунок", "Ви описуєте ситуацію. Ми перевіряємо, чи є запис у реєстрі, і надсилаємо точну ціну, строк та список потрібних даних."), s2, s3, s4]
+    lis = "".join(f'<li class="glass"><span class="n">{i+1}</span><strong>{t}</strong><p>{d}</p></li>' for i, (t, d) in enumerate(items))
+    sub = "Один візит до нотаріуса з вашого боку — решту робимо ми." if poa else "Жодних поїздок, нотаріусів і черг з вашого боку."
+    return f"""<section class="s" id="how"><div class="wrap"><span class="eyebrow">Процес</span><h2>Як це працює</h2><p class="lead">{sub}</p><ol class="steps4">{lis}</ol></div></section>
+"""
+
+# ---------------------------------------------------------------- головна
+INDEX_FAQ = [
+    ("Справді не потрібна нотаріальна довіреність?", "Так. Адвокат представляє клієнта на підставі договору про правову допомогу й ордера — це передбачено статтею 26 Закону «Про адвокатуру та адвокатську діяльність». ДРАЦС, МВС і архіви приймають ордер без нотаріуса. Виняток — РНОКПП: податкова вимагає нотаріальну довіреність, її можна зробити в іноземного нотаріуса, зразок надамо."),
+    ("Чи потрібно йти в консульство або їхати в Україну?", "Ні. Договір підписуємо дистанційно, усе інше адвокат робить в Україні. Це особливо важливо для чоловіків 18–60 років, яким консульство надає послуги лише за наявності військово-облікового документа."),
+    ("Чому не Дія?", "Якщо ви в Україні, маєте Дія.Підпис і ваш запис є в електронному реєстрі — замовляйте в Дії. Але Дія не бачить записи з паперових книг і дає електронний витяг, який за кордоном часто не приймають. У цих випадках потрібен паперовий документ, який отримує адвокат."),
+    ("Скільки це коштує?", f"Повторне свідоцтво або витяг з ДРАЦС — від {PRICE['svid']} €, витяг про несудимість — від {PRICE['nes']} €, РНОКПП — від {PRICE['rnokpp']} €, апостиль — від {PRICE['apostyl']} €. Державні збори й доставка включені. Точну ціну фіксуємо в договорі після консультації."),
+    ("Скільки часу це займе?", "Повторне свідоцтво, витяг з ДРАЦС або РНОКПП — від одного робочого дня. Витяг про несудимість — від п'яти робочих днів, регламентний строк МВС — до 30 днів. Апостиль — 4–10 робочих днів. Точний строк під вашу ситуацію напишемо у відповіді на заявку."),
+    ("Як я зрозумію, що ви не шахраї?", f"Перевірте свідоцтво № {SITE['cert']} у Єдиному реєстрі адвокатів України. Ми підписуємо договір від імені адвокатського бюро, надсилаємо фото готового документа і квитанцію про відправку, а другу половину оплати беремо тільки після фото документа."),
+    ("Як оплатити з-за кордону?", "Будь-яким зручним способом: карткою через платіжне посилання, переказом на рахунок бюро в гривні чи євро. Оплата двома частинами — 50 % на старті і 50 % після фото готового документа."),
+    ("Що, якщо мого запису немає в реєстрі?", "Це найчастіша причина відмови в Дії для записів до початку 2000-х. Ми звертаємося до архіву відділу ДРАЦС, де реєстрували акт, і запис вносять до реєстру. Якщо книга втрачена — поновлюємо актовий запис."),
+]
+
+COUNTRY_ROWS = [
+    ("🇵🇱 Польща", "/polshcha/", '<span class="so">за договором не потрібен</span>, на практиці установи часто просять', '<span class="so">бажано</span>', "присяжний перекладач у Польщі", '<span class="no">зазвичай не приймають</span>'),
+    ("🇩🇪 Німеччина", "/nimechchyna/", '<span class="yes">обов\'язково</span>', '<span class="yes">обов\'язково</span>', "присяжний перекладач у Німеччині; український переклад не приймають", '<span class="no">не приймають</span>'),
+    ("🇨🇿 Чехія", "/chekhiya/", '<span class="so">за договором не потрібен</span>, часто просять', '<span class="so">бажано</span>', "судовий перекладач у Чехії", '<span class="no">зазвичай не приймають</span>'),
+    ("🇮🇹 Італія", "/italiya/", '<span class="yes">обов\'язково</span>, часто подвійний', '<span class="yes">обов\'язково</span>', "акредитований при консульстві Італії перекладач", '<span class="no">не приймають</span>'),
+    ("🇪🇸 Іспанія", "/ispaniya/", '<span class="yes">обов\'язково</span>, або подвійний', '<span class="yes">обов\'язково</span>', "traductor jurado", '<span class="no">не приймають</span>'),
+]
+
+BLOG_PLAN = [
+    ("Дія та е-документи", ["diia-vidmovyla-u-povtornij-vydachi"], ["Е-витяг з Дії не прийняли за кордоном: чим він відрізняється від паперового", "«Запис не знайдено»: як отримати документ з паперової книги ДРАЦС"]),
+    ("По країнах", ["apostyl-chy-podvijnyj-apostyl-tablytsya-po-krainakh"], ["Документи з України для карти побиту і громадянства в Польщі", "Німеччина: Standesamt, Aufenthaltstitel і які переклади приймають", "Чехія, Італія, Іспанія: що вимагають установи"]),
+    ("Документи", ["svidotstvo-pro-rozirvannya-shlyubu-chy-rishennya-sudu"], ["Витяг про несудимість за кордоном: паперовий, електронний і строк дії", "РНОКПП з-за кордону: чому тут потрібна довіреність і як її оформити в іноземного нотаріуса", "Свідоцтво про смерть для спадщини за кордоном: повний комплект"]),
+    ("Довіра і процес", [], ["Ордер адвоката замість довіреності: що це, чому законно і як перевірити адвоката в ЄРАУ", "Чоловікам 18–60: що робити, якщо консульство не приймає", "Як не заплатити шахраям за документи з України: 7 перевірок"]),
+]
+
+def is_live(slug):
+    return any(p["slug"] == slug and not p.get("draft") for p in PAGES)
+
+def countries_table():
+    def name(n, href):
+        return f'<a href="{href}">{n}</a>' if is_live(href.strip("/")) else n
+    labels = ["", "Апостиль на свідоцтво", "Апостиль на несудимість", "Переклад", "Е-витяг з Дії"]
+    rows = "".join("<tr>" + f"<td>{name(r[0], r[1])}</td>" + "".join(f'<td data-label="{labels[i+1]}">{c}</td>' for i, c in enumerate(r[2:])) + "</tr>" for r in COUNTRY_ROWS)
+    return f"""<div class="tblwrap glass"><table aria-label="Вимоги до українських документів по країнах">
+<thead><tr><th scope="col">Країна</th><th scope="col">Апостиль на свідоцтво</th><th scope="col">Апостиль на несудимість</th><th scope="col">Переклад</th><th scope="col">Е-витяг з Дії</th></tr></thead>
+<tbody>{rows}</tbody></table></div>"""
+
+def blog_plan_block():
+    by = {p["slug"]: p for p in POSTS}
+    cols = ""
+    for rub, pub, plan in BLOG_PLAN:
+        lis = "".join(f'<li class="pub"><a href="/blog/{s}/">{html.escape(by[s]["h1"])}</a><small>Опубліковано</small></li>' for s in pub if s in by)
+        lis += "".join(f"<li>{html.escape(t)}<small>Незабаром</small></li>" for t in plan)
+        cols += f'<div class="card glass"><span class="tag">Рубрика</span><h3>{rub}</h3><ol>{lis}</ol></div>'
+    return f'<div class="blog">{cols}</div>'
+
+def doc_card(tag, tagcls, title, href, text, term_l, term, price):
+    return f'<div class="card glass"><span class="tag{tagcls}">{tag}</span><h3><a href="{href}">{title}</a></h3><p>{text}</p><div class="foot"><span>{term_l} <b>{term}</b></span><span><b>від {price} €</b></span></div></div>'
+
 def build_index():
-    h = head(f"Дублікати свідоцтв ДРАЦС та витяг про несудимість за кордон — через адвоката | {SITE['name']}",
-             "Отримаємо повторне свідоцтво про народження, шлюб, смерть, витяг з ДРАЦС або витяг про несудимість за вас в Україні. Без нотаріальної довіреності — за адвокатським ордером. Апостиль, переклад, доставка в будь-яку країну.",
+    h = head(f"Документи з України за кордон — без поїздки і довіреності | {SITE['name']}",
+             "Повторні свідоцтва ДРАЦС, витяги, витяг про несудимість, апостиль і доставка в 35+ країн. Адвокат отримує документ за ордером — нотаріальна довіреність і консульство не потрібні. Від 80 €.",
              "/", [faq_ld(INDEX_FAQ)])
+    docs = "".join([
+        doc_card("За ордером", "", "Повторні свідоцтва ДРАЦС", "/svidotstvo-pro-narodzhennya/", 'Про <a href="/svidotstvo-pro-narodzhennya/">народження</a>, <a href="/svidotstvo-pro-shlyub/">шлюб</a>, <a href="/svidotstvo-pro-rozirvannya-shlyubu/">розірвання шлюбу</a>, <a href="/svidotstvo-pro-smert/">смерть</a>, зміну імені. Документ нового зразка, придатний для апостиля.', "Строк", "від 1 роб. дня", PRICE["svid"]),
+        doc_card("За ордером", "", "Витяг з ДРАЦС", "/vytyag-dracs/", "Підтверджує факт реєстрації акта і містить дані, яких немає у свідоцтві. Його найчастіше просять для шлюбу й спадщини за кордоном.", "Строк", "від 1 роб. дня", PRICE["vyt"]),
+        doc_card("За ордером", "", "Витяг про несудимість", "/vytyag-pro-nesudymist/", "Паперовий, з печаткою МВС і апостилем. Електронний витяг з Дії для карти побиту, громадянства чи роботи за кордоном зазвичай не приймають.", "Строк", "від 5 роб. днів", PRICE["nes"]),
+        doc_card("Потрібна довіреність", " warn", "РНОКПП", "/rnokpp/", "Код платника податків. Тут закон вимагає нотаріальну довіреність — її можна оформити в іноземного нотаріуса, зразок надамо.", "Строк", "від 1 роб. дня", PRICE["rnokpp"]),
+        doc_card("Додатково", "", "Апостиль", "/apostyl/", "У Мін'юсті, МЗС або МОН залежно від документа. Для Італії та Іспанії — подвійний апостиль, якщо його вимагає установа.", "Строк", "4–10 роб. днів", PRICE["apostyl"]),
+        doc_card("Додатково", "", "Переклад і доставка", "/dlya-ukraintsiv-za-kordonom/", "Підкажемо, який переклад приймуть у вашій країні. Оригінал відправляємо кур'єром до дверей з трек-номером.", "Доставка", "3–7 днів", PRICE["delivery"]),
+    ])
     body = f"""{header()}
-<main>
-<section class="hero" id="top">
-  <div class="wrap grid grid-2">
-    <div class="stack" style="gap:24px">
-      <span class="pill" style="color:var(--ink-2)"><span style="color:var(--accent);display:inline-flex">{ICON['globe']}</span>Для українців за кордоном та складних випадків в Україні</span>
-      <h1>Документи з України — <span style="color:var(--primary)">без поїздки</span> і довіреності</h1>
-      <p class="lead">Повторні свідоцтва ДРАЦС, витяги, витяг про несудимість, РНОКПП. Адвокат отримує документ в Україні, ставить апостиль, робить переклад і відправляє вам у будь-яку країну.</p>
-      <div class="cta-row"><a class="btn btn-primary" href="#form">Дізнатися вартість і строки</a><a class="btn btn-secondary" href="#diia">Можу зробити сам?</a></div>
-      <ul class="checks">
-        <li><span style="color:var(--accent)">{ICON['check']}</span>Повноваження за адвокатським ордером — довіреність не потрібна</li>
-        <li><span style="color:var(--accent)">{ICON['check']}</span>Працюємо зі старими актовими записами, яких немає в Дії</li>
-        <li><span style="color:var(--accent)">{ICON['check']}</span>Апостиль, засвідчений переклад і доставка DHL / Укрпоштою</li>
-      </ul>
-      <p class="small" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:4px"><span>Адвокатське бюро, з 2017</span><span aria-hidden="true">·</span><span>35+ країн доставки</span><span aria-hidden="true">·</span><span>2 000+ документів на рік</span></p>
-    </div>
-    {form()}
-  </div>
-</section>
+<main id="top">
+<section class="hero"><div class="wrap">
+<div class="hgrid">
+<div>
+<span class="pill glass">{SITE['lawyer_short']} · свідоцтво № {SITE['cert']} · з 2017</span>
+<h1>Документи з України — без поїздки і довіреності</h1>
+<p class="lead">Повторні свідоцтва ДРАЦС, витяги, витяг про несудимість, апостиль і доставка в 35+ країн. <strong>Адвокат отримує документ за ордером</strong> — нотаріальна довіреність і похід у консульство не потрібні.</p>
+<div class="row"><a class="btn" href="#form">Дізнатись вартість і строк</a><a class="btn ghost" href="#scene">Як це працює</a></div>
+</div>
+{cfg()}
+</div>
+<div class="proof">
+<div class="glass"><b>Ордер адвоката</b>Законна підстава представництва за ст. 26 Закону «Про адвокатуру та адвокатську діяльність». Нотаріус не потрібен.</div>
+<div class="glass"><b>Свідоцтво № {SITE['cert']}</b><a href="{SITE['unba']}" target="_blank" rel="noopener">Перевірити в ЄРАУ →</a></div>
+<div class="glass"><b>{SITE['cases']} документів</b>отримуємо щороку для клієнтів з України і з-за кордону</div>
+<div class="glass"><b>35+ країн</b>доставки: Польща, Німеччина, Чехія, Італія, Іспанія, Канада, США та інші</div>
+</div>
+</div></section>
 
-<section class="section" id="diia">
-  <div class="wrap stack-lg">
-    <div class="stack" style="gap:12px;max-width:760px">
-      <h2>Чесно: іноді ви впораєтеся самі — і це майже безкоштовно</h2>
-      <p class="lead" style="max-width:none">Якщо ви в Україні, маєте Дія.Підпис і ваш актовий запис є в електронному реєстрі — замовляйте в Дії. Ми потрібні тоді, коли цей шлях не працює.</p>
-    </div>
-    <div class="table-wrap compare-wrap"><table class="tbl compare" aria-label="Порівняння: самостійно через Дію та через адвоката">
-      <thead><tr><th style="width:24%" scope="col"><span class="sr-only">Критерій</span></th><th scope="col">Самостійно через Дію</th><th class="accent" scope="col">Через адвоката</th></tr></thead>
-      <tbody><tr><th scope="row">Хто може</th><td data-label="Самостійно через Дію">Той, хто має КЕП або Дія.Підпис (українська SIM, BankID)</td><td data-label="Через адвоката" class="win">Будь-хто, зокрема без Дії, з іноземним номером, з паспортом старого зразка</td></tr><tr><th scope="row">Старі записи (до ~2000-х)</th><td data-label="Самостійно через Дію">Часто відмова: запис не оцифровано</td><td data-label="Через адвоката" class="win">Знаходимо в архіві ДРАЦС, за потреби поновлюємо запис</td></tr><tr><th scope="row">Доставка</th><td data-label="Самостійно через Дію">Укрпошта в межах України</td><td data-label="Через адвоката" class="win">DHL / Укрпошта в будь-яку країну, або передача рідним</td></tr><tr><th scope="row">Апостиль і переклад</th><td data-label="Самостійно через Дію">Окремо, особисто або через представника</td><td data-label="Через адвоката" class="win">Включаємо в один пакет, відправляємо готовий комплект</td></tr><tr><th scope="row">Вартість</th><td data-label="Самостійно через Дію">Держмито від 0,51 грн до 73 грн + доставка</td><td data-label="Через адвоката" class="win">Залежить від документа, строку та країни — розрахуємо за заявкою</td></tr><tr><th scope="row">Строк</th><td data-label="Самостійно через Дію">3 робочі дні (ДРАЦС), до 10 робочих днів (несудимість)</td><td data-label="Через адвоката" class="win">Від 1 робочого дня, терміново — обговорюємо</td></tr></tbody></table></div>
-    <p class="muted">Не впевнені, який шлях ваш? Напишіть — підкажемо чесно, навіть якщо вам краще зробити це самостійно.</p>
-  </div>
-</section>
+{scene()}
+<section class="s" id="docs"><div class="wrap">
+<span class="eyebrow">Що ми отримуємо</span>
+<h2>Документи, строки і ціни</h2>
+<p class="lead">Усе, крім РНОКПП, отримуємо за ордером адвоката — від вас потрібні лише скан паспорта і дані про документ. Державні збори включені в ціну, точну суму фіксуємо в договорі після консультації.</p>
+<div class="grid">{docs}</div>
+<p class="note" style="margin-top:18px">Не знайшли свій документ? Напишіть — скажемо чесно, чи можливо його отримати і чи потрібні ми взагалі.</p>
+</div></section>
 
-<section class="section section--alt" id="docs">
-  <div class="wrap stack-lg">
-    <h2>Які документи отримуємо</h2>
-    <div class="grid grid-4 docs-grid">
-      <article class="card"><span class="icon-box" style="color:var(--accent)">{ICON['doc']}</span><h3>Повторні свідоцтва ДРАЦС</h3>
-        <ul><li><a href="/svidotstvo-pro-narodzhennya/">про народження</a> (своє або дитини)</li><li><a href="/svidotstvo-pro-shlyub/">про шлюб</a></li><li><a href="/svidotstvo-pro-rozirvannya-shlyubu/">про розірвання шлюбу</a></li><li>про зміну імені</li><li><a href="/svidotstvo-pro-smert/">про смерть</a> (для спадщини)</li></ul>
-        <p class="muted">Той самий документ, що й оригінал, з позначкою «Повторно». Підходить для апостиля та подання за кордон.</p></article>
-      <article class="card"><span class="icon-box" style="color:var(--accent)">{ICON['file']}</span><h3>Витяги з реєстру актів цивільного стану</h3>
-        <ul><li>про шлюб / про сімейний стан</li><li>про розірвання шлюбу</li><li>про народження</li><li>про смерть</li><li>архівні довідки та поновлення записів</li></ul>
-        <p class="muted"><a href="/vytyag-dracs/">Детальніше про витяги</a> — для шлюбу за кордоном, ВНЖ, спадщини, підтвердження родинних зв'язків.</p></article>
-      <article class="card"><span class="icon-box" style="color:var(--accent)">{ICON['shield']}</span><h3>Витяг про несудимість</h3>
-        <ul><li>паперовий з мокрою печаткою МВС</li><li>апостиль для подання за кордон</li><li>засвідчений переклад</li><li>для візи, ВНЖ, роботи, громадянства, усиновлення</li></ul>
-        <p class="muted">Електронний витяг з QR-кодом у Дії безкоштовний. <a href="/vytyag-pro-nesudymist/">Ми — для тих</a>, кому потрібен паперовий, з апостилем, або хто не може зайти в Дію.</p></article>
-      <article class="card"><span class="icon-box" style="color:var(--accent)">{ICON['id']}</span><h3>РНОКПП (ідентифікаційний код)</h3>
-        <ul><li>вперше — дорослому або дитині</li><li>відновлення втраченої картки</li><li>зміна прізвища / виправлення даних</li><li>паперова картка для нотаріуса, банку, спадщини</li></ul>
-        <p class="muted"><a href="/rnokpp/">Докладніше про РНОКПП</a> — за нотаріальною довіреністю (зразок надаємо), для тих, хто за кордоном або кому потрібен паперовий документ.</p></article>
-    </div>
-  </div>
-</section>
+<section class="s" id="diia"><div class="wrap">
+<span class="eyebrow">Коли Дія не допоможе</span>
+<h2>Три ситуації, з якими до нас приходять найчастіше</h2>
+<p class="lead">Якщо ви в Україні, маєте Дія.Підпис і ваш актовий запис є в електронному реєстрі — замовляйте в Дії, це майже безкоштовно. Ми потрібні, коли цей шлях не працює.</p>
+<div class="grid3">
+<div class="card glass"><p class="q">Дія каже «запис не знайдено» або відмовляє у повторній видачі</p><p>Так буває з актами до 2000-х років, зміненими даними або коли паперова книга ще не оцифрована.</p><p class="ans">Адвокат звертається у відділ ДРАЦС чи архів напряму, з ордером, і отримує документ з паперової книги. <a href="/blog/diia-vidmovyla-u-povtornij-vydachi/" style="color:var(--blue)">Шість причин відмови</a>.</p></div>
+<div class="card glass"><p class="q">Електронний витяг з Дії не прийняли в установі за кордоном</p><p>Електронний документ без мокрої печатки за кордоном часто не визнають — потрібен паперовий оригінал з апостилем.</p><p class="ans">Отримуємо паперовий документ, ставимо апостиль і відправляємо кур'єром. Ви отримуєте те, що приймуть.</p></div>
+<div class="card glass"><p class="q">Консульство записує на місяці вперед або не приймає взагалі</p><p>Черги на запис, вимога особистої присутності, а чоловікам 18–60 років послуги надають лише з військово-обліковим документом.</p><p class="ans">У консульство йти не треба: ордер адвоката діє в Україні без вашої участі й без нотаріуса.</p></div>
+</div>
+</div></section>
 
-<section class="section">
-  <div class="wrap stack-lg">
-    <h2>Коли звертаються до нас</h2>
-    <div class="grid grid-4">
-      <div class="tile"><strong>Ви за кордоном без Дії</strong><p>Іноземний номер, немає КЕП, консульство далеко або записи на місяці вперед. Ми робимо все в Україні, вам лишається отримати посилку.</p></div>
-      <div class="tile"><strong>Старий або «проблемний» запис</strong><p>Дія відмовила, бо акт не в електронному реєстрі. Запис з окупованої території, з помилкою, або його треба поновити через суд.</p></div>
-      <div class="tile"><strong>Документи родичів</strong><p>Свідоцтво про смерть для спадщини, про народження батьків для громадянства, витяг про шлюб для підтвердження родинних зв'язків.</p></div>
-      <div class="tile"><strong>Потрібен пакет «під ключ»</strong><p>Документ + апостиль + переклад + доставка, щоб подати в іноземну установу без зайвих кроків і повторних запитів.</p></div>
-    </div>
-  </div>
-</section>
+<section class="s"><div class="wrap"><div class="men dark">
+<div><span class="eyebrow">Чоловікам 18–60</span><h2 style="margin-bottom:.4em">Консульство не приймає без військово-облікового документа. Нам він не потрібен</h2><p>З 2024 року консульські установи надають послуги чоловікам призовного віку лише за наявності оновлених військово-облікових даних. Нотаріальну довіреність за кордоном теж не завжди вдається оформити. Ордер адвоката вирішує обидві проблеми: ви нікуди не йдете, документ отримує адвокат в Україні.</p><a class="btn blue" href="#form">Описати ситуацію</a></div>
+<ul>
+<li><b>Без консульства</b>Ордер подається безпосередньо у ДРАЦС чи МВС в Україні.</li>
+<li><b>Без нотаріуса</b>Договір підписуємо дистанційно. Виняток — РНОКПП.</li>
+<li><b>Без вашої присутності</b>Від вас — скан паспорта і контакт у месенджері.</li>
+<li><b>Конфіденційно</b>Усе листування захищене адвокатською таємницею.</li>
+</ul>
+</div></div></section>
 
-{steps_block()}
+<section class="s" id="countries"><div class="wrap">
+<span class="eyebrow">Куди відправляємо</span>
+<h2>Що потрібно саме у вашій країні</h2>
+<p class="lead">Вимоги залежать від країни, а не від документа. Нижче — п'ять країн, де живе найбільше українців. Докладніше — у статті <a href="/blog/apostyl-chy-podvijnyj-apostyl-tablytsya-po-krainakh/" style="color:var(--blue)">про апостиль по країнах</a>.</p>
+{countries_table()}
+<p class="note" style="margin-top:14px">Інша країна? Відправляємо в 35+ країн, зокрема в Канаду, США, Велику Британію та Ізраїль. Вкажіть країну в заявці — підкажемо вимоги.</p>
+<div class="chipsl" aria-label="Служби доставки"><span>Нова Пошта</span><span>DHL</span><span>Укрпошта</span><span>Meest</span><span class="note" style="background:none;box-shadow:none;padding-left:4px">— обираємо службу, яка швидше доставить у вашу країну</span></div>
+</div></section>
 
-<section class="section" id="why">
-  <div class="wrap grid grid-2" style="align-items:center">
-    <div class="stack">
-      <h2>Чому адвокат, а не бюро перекладів</h2>
-      <p class="prose" style="font-size:17px">Більшість сервісів працюють за нотаріальною довіреністю: вам треба йти в консульство, чекати запису, платити за посвідчення і пересилати оригінал в Україну. Адвокат отримує документи за ордером — це прямо передбачено роз'ясненнями Мін'юсту для повторних свідоцтв.</p>
-      <p class="prose" style="font-size:17px">Якщо з'ясується, що запис втрачено, містить помилку або потрібно звертатися до суду, ми не перенаправляємо вас «до юриста» — ми і є юристи.</p>
-    </div>
-    <div class="grid grid-2" style="gap:16px">
-      <div class="stat"><b>{SITE['cases']}</b><span>отриманих документів на рік</span></div>
-      <div class="stat"><b>35+</b><span>країн, куди вже відправляли документи</span></div>
-      <div class="stat"><b>0</b><span>довіреностей, консульств і черг з вашого боку</span></div>
-      <div class="stat"><b>2017</b><span>рік початку адвокатської діяльності</span></div>
-    </div>
-  </div>
-</section>
+<section class="s" id="price"><div class="wrap">
+<span class="eyebrow">Вартість</span>
+<h2>Три пакети замість «ціна за запитом»</h2>
+<p class="lead">Державні збори й доставка включені. Точну ціну фіксуємо в договорі після консультації. Оплата двома частинами: 50 % на старті, 50 % — після фото готового документа.</p>
+<div class="pk">
+<div class="card glass"><span class="tag">Пакет 1</span><h3>Документ</h3><p>Отримуємо документ в Україні й надсилаємо фото. Оригінал відправляємо на вашу адресу або зберігаємо до наступного кроку.</p><div class="price">від {PACK['p1']} €</div><div class="per">за один документ · від 1 роб. дня</div><ul><li>Договір і ордер</li><li>Повторне свідоцтво або витяг</li><li>Фото документа одразу</li></ul><a class="btn ghost" href="#form">Обрати</a></div>
+<div class="card bluecard"><span class="tag">Найчастіше</span><h3>Документ + апостиль</h3><p>Те, що приймають за кордоном: паперовий оригінал з апостилем, відправлений кур'єром до ваших дверей.</p><div class="price">від {PACK['p2']} €</div><div class="per">за один документ · 5–11 роб. днів</div><ul><li>Усе з пакета 1</li><li>Апостиль Мін'юсту, МЗС або МОН</li><li>Доставка з трек-номером</li></ul><a class="btn white" href="#form">Обрати</a></div>
+<div class="card glass"><span class="tag">Пакет 3</span><h3>Під ключ</h3><p>Для тих, хто хоче віддати одне завдання і отримати готовий комплект для установи.</p><div class="price">від {PACK['p3']} €</div><div class="per">за комплект · строк залежить від країни</div><ul><li>Усе з пакета 2</li><li>Переклад, який приймуть у вашій країні</li><li>Подвійний апостиль за потреби</li><li>Супровід до подачі в установу</li></ul><a class="btn ghost" href="#form">Обрати</a></div>
+</div>
+<p class="note" style="margin-top:16px">Відповідь із точною ціною і строком — за 15 хвилин у робочий час. Якщо документ можна отримати в Дії безкоштовно, ми так і скажемо.</p>
+</div></section>
 
+{lawyer_block()}
+{services_strip()}
 {faq_block(INDEX_FAQ)}
-{band()}
+<section class="s" id="blog"><div class="wrap">
+<span class="eyebrow">Блог</span>
+<h2>Розбираємо реальні ситуації з документами</h2>
+<p class="lead">Чотири рубрики, кожна відповідає на запит, з яким люди приходять у пошук. <a href="/blog/" style="color:var(--blue)">Усі статті</a>.</p>
+{blog_plan_block()}
+</div></section>
+{form_section()}
 </main>
 {footer()}"""
     write("index.html", h + body)
 
-# ---------------------------------------------------------------- inner pages content
-DIIA_DRACS = [
-    "Увійдіть на портал Дія з Дія.Підписом або КЕП.",
-    "У каталозі послуг оберіть «Довідки та витяги» → потрібне свідоцтво або витяг.",
-    "Заповніть заяву: щодо кого документ, дата й місце реєстрації акта, причина повторної видачі.",
-    "Оберіть спосіб отримання: відділення Укрпошти або кур'єр (у межах України).",
-    "Сплатіть державне мито (0,51 грн за свідоцтво, 73 грн за витяг) і підпишіть заяву.",
-    "Через 3 робочі дні документ надішлють; статус видно в кабінеті.",
-]
-DIIA_NOTE_DRACS = "Якщо Дія пише, що актовий запис не знайдено, це майже завжди означає, що запис ще не перенесено до електронного реєстру (типово для реєстрацій до середини 2000-х) або він на непідконтрольній території. У такому разі самостійно можна звернутись у будь-який відділ ДРАЦС особисто."
-
-COMMON_LAWYER = [
-    ("Ви за кордоном без Дія.Підпису", "Немає української SIM або BankID, консульство далеко. Ми отримуємо документ за ордером і відправляємо кур'єром у вашу країну."),
-    ("Запису немає в електронному реєстрі", "Звертаємось до архіву відділу ДРАЦС за місцем реєстрації, добиваємось внесення запису до реєстру, після чого отримуємо повторне свідоцтво."),
-    ("Потрібен апостиль і переклад", "Свідоцтво нового зразка одразу подаємо на апостиль у Мін'юст, робимо засвідчений переклад і відправляємо готовий комплект."),
-    ("Помилка в документі або втрачена книга", "Виправляємо актовий запис або поновлюємо його (за потреби — через суд). Це юридична робота, яку бюро перекладів не виконують."),
-]
-
-PAGES = [
-dict(
-    slug="rnokpp", doc="rnokpp", poa=True,
-    title="РНОКПП (ідентифікаційний код): отримати або відновити за кордоном і в Україні",
-    desc="Як отримати ідентифікаційний код (РНОКПП) вперше, відновити втрачену картку платника податків або оформити код дитині, якщо ви за кордоном: Дія, е-Консул, ДПС поштою або через адвоката. Паперова картка для нотаріуса, банку, спадщини.",
-    h1="РНОКПП: отримати або відновити ідентифікаційний код",
-    lead="Без коду платника податків в Україні не оформити спадщину, не відкрити рахунок, не продати квартиру і не подати документи на дитину. Якщо ви за кордоном, картку втрачено або код потрібен дитині — отримаємо документ за вас за довіреністю і надішлемо куди потрібно.",
-    intro="""<h2>Що це за документ і чому він досі паперовий</h2>
-<p>РНОКПП — реєстраційний номер облікової картки платника податків, він же «ідентифікаційний код» або «ІПН». Його присвоює Державна податкова служба один раз і назавжди; підтверджує його <strong>картка платника податків</strong> (раніше — довідка). З 2026 року є і <strong>електронна картка в Дії</strong>, яка юридично прирівняна до паперової, але на практиці нотаріуси, банки, суди та іноземні установи часто вимагають саме паперовий документ з печаткою ДПС: порядок вчинення нотаріальних дій електронну картку досі прямо не згадує.</p>
-<h2>Коли звертаються за РНОКПП</h2>
-<ul><li><strong>Втрачено або пошкоджено картку</strong>, а нотаріус чи банк вимагає оригінал.</li><li><strong>Код потрібен дитині</strong>, народженій за кордоном або в Україні, — для спадщини, виплат, відкриття рахунку, вступу.</li><li><strong>Код ніколи не отримували</strong> — довго жили за кордоном, виїхали дитиною, маєте паспорт старого зразка без відмітки.</li><li><strong>Змінилось прізвище або паспортні дані</strong> — потрібно внести зміни до облікової картки, інакше дані в реєстрах не збігаються.</li><li><strong>Потрібна довідка з печаткою для подання за кордоном</strong> — апостиль на картку платника податків не ставиться, тому іноземні установи приймають її як є або через нотаріальне засвідчення копії з перекладом.</li></ul>
-<h2>Що потрібно знати про зміну прізвища</h2>
-<p>Якщо ви змінили прізвище (шлюб, розлучення) і не повідомили ДПС, у реєстрі лишаються старі дані. Нотаріус бачить розбіжність між паспортом і карткою і зупиняє дію. Виправляється заявою за формою 5ДР — ми подаємо її разом із заявою на нову картку, одним зверненням.</p>
-<h2>Важливо: для РНОКПП потрібна нотаріальна довіреність</h2>
-<p>На відміну від свідоцтв і витягів ДРАЦС, які адвокат отримує за ордером, податкова видає картку платника податків представнику <strong>лише за нотаріально посвідченою довіреністю</strong>. Ордер тут не працює. Довіреність можна оформити:</p>
-<ul><li>у <strong>будь-якого нотаріуса в країні перебування</strong> — ми надамо готовий зразок потрібною мовою; після посвідчення потрібен апостиль (у країнах з договором про правову допомогу, як Польща чи Чехія, апостиль не потрібен) і переклад українською в Україні — переклад організовуємо ми;</li><li>у <strong>консульстві України</strong> — без апостиля й перекладу, але з очікуванням запису;</li><li>у <strong>нотаріуса в Україні</strong>, якщо ви або довірена особа тут.</li></ul>
-<p>Оригінал довіреності пересилається нам в Україну. Далі все робимо ми: подання до ДПС, отримання картки, за потреби внесення змін, доставка.</p>
-<p class="callout">РНОКПП часто потрібен у комплекті зі свідоцтвами: для спадщини — зі <a href="/svidotstvo-pro-smert/">свідоцтвом про смерть</a> та документами про споріднення, для дитини — зі <a href="/svidotstvo-pro-narodzhennya/">свідоцтвом про народження</a>. Робимо весь пакет одним зверненням.</p>""",
-    diia=["<strong>Дорослий з Дія.Підписом</strong>: Дія → Сервіси → Е-картка платника податків → замовити; електронна картка з'являється в застосунку за кілька хвилин. Паперову можна замовити в Електронному кабінеті платника або отримати в будь-якому ЦНАПі чи органі ДПС.", "<strong>Дитині</strong>: з 14.05.2026 батьки оформлюють код дитині в Дії або, якщо за кордоном, через систему <strong>е-Консул</strong> (сканкопії документів онлайн, картка за 1–3 дні, отримання в консульстві).", "<strong>Втрачена картка, ви за кордоном</strong>: заяву за формою 1ДР можна надіслати поштою до ДПС у Києві з проханням переслати картку в консульство або на вашу закордонну адресу.", "<strong>Вперше, дорослий, без Дії</strong>: особисто в будь-якому органі ДПС або ЦНАПі з паспортом; за кордоном — через консульство (строк кілька тижнів)."],
-    diia_note="Якщо є Дія.Підпис і вам достатньо електронної картки або ви в Україні — зробіть самостійно, це безкоштовно. Ми потрібні, коли потрібна паперова картка за кордоном, немає Дії, є помилки чи зміна прізвища, або код потрібен одразу в пакеті з іншими документами.",
-    lawyer=[
-        ("Паперова картка потрібна за кордоном", "Надаємо зразок довіреності для іноземного нотаріуса, організовуємо переклад, отримуємо картку в ДПС, за потреби робимо нотаріальну копію з перекладом і відправляємо кур'єром."),
-        ("Немає Дія.Підпису або е-Консул не підходить", "Подаємо заяву від вашого імені в Україні за довіреністю — без поїздки й без черги в консульстві."),
-        ("Зміна прізвища / помилка в даних", "Подаємо форму 5ДР про внесення змін і одразу отримуємо нову картку з правильними даними."),
-        ("Код у пакеті для спадщини чи дитини", "РНОКПП + свідоцтва ДРАЦС + апостиль одним зверненням і одним відправленням."),
-    ],
-    need=["Нотаріальна довіреність на нашого представника (зразок надамо; оформлюється в іноземного нотаріуса, консульстві або в Україні)", "Фото/скан паспорта (для дитини — свідоцтво про народження та паспорт одного з батьків)", "Чи був код раніше (якщо так — номер або стара картка/довідка, якщо є)", "Чи змінювались прізвище/паспортні дані", "Адреса доставки"],
-    faq=[
-        ("Чи можна отримати РНОКПП за адвокатським ордером, як свідоцтва?", "Ні. Податкова вимагає нотаріально посвідчену довіреність. Її можна зробити в будь-якого нотаріуса за кордоном за нашим зразком — це зазвичай один візит без запису."),
-        ("Скільки коштує отримати РНОКПП?", "Державна послуга безкоштовна. Якщо отримуєте через нас — оплачується правова допомога, переклад довіреності та доставка; окремо ви сплачуєте іноземному нотаріусу за посвідчення. Суму називаємо після уточнення ситуації."),
-        ("Чи можна поставити апостиль на картку платника податків?", "Ні, апостиль на картку ДПС не проставляється. Для подання за кордон роблять нотаріально засвідчену копію з перекладом; на нотаріальне засвідчення апостиль ставиться."),
-        ("Чи приймуть електронну картку з Дії у нотаріуса?", "Юридично вона рівнозначна паперовій, але порядок нотаріальних дій її не згадує, і багато нотаріусів відмовляють. Безпечніше мати паперову картку або довідку з печаткою ДПС."),
-        ("Код є, але картку загублено. Чи потрібен новий номер?", "Ні, номер присвоюється один раз. Оформлюється нова картка з тим самим номером."),
-        ("Як швидко?", "Отримання картки в ДПС — від 1 робочого дня після подання, плюс доставка. Якщо потрібне внесення змін — на кілька днів довше."),
-    ],
-),
-dict(
-    slug="polshcha", doc="kilka",
-    title="Документи з України для Польщі: карта побиту, PESEL, шлюб, громадянство",
-    desc="Які українські документи потрібні в Польщі для карти побиту, транскрипції (umiejscowienie) свідоцтв, шлюбу в USC, возз'єднання сім'ї та громадянства. Апостиль, присяжний переклад, отримання через адвоката без довіреності.",
-    h1="Документи з України для Польщі",
-    lead="Карта побиту, PESEL, реєстрація дитини, шлюб в USC, обивательство — польські установи майже завжди просять українські свідоцтва ДРАЦС і витяг про несудимість. Отримаємо їх за вас в Україні та підготуємо так, як вимагає Польща.",
-    intro="""<h2>Що саме вимагає Польща — і чим це відрізняється</h2>
-<p>У Польщі працюють два правила, про які часто не знають:</p>
-<ul><li><strong>Апостиль формально не обов'язковий.</strong> Між Україною і Польщею діє Договір про правову допомогу 1993 року, за яким офіційні документи приймаються без легалізації. На практиці більшість USC та воєводських управлінь приймають українські свідоцтва без апостиля, але окремі установи й банки його вимагають. Ми радимо ставити апостиль, якщо документ подаватиметься не в одну установу або ви не впевнені — це дешевше, ніж повторна відправка.</li>
-<li><strong>Переклад має зробити польський присяжний перекладач</strong> (tłumacz przysięgły) або консул Польщі. Переклад, засвідчений українським нотаріусом, польські установи <strong>не приймають</strong>. Тому для Польщі ми не продаємо «переклад у пакеті» — надсилаємо вам оригінал, а присяжний переклад ви робите на місці (від 60–100 zł за документ) або ми організовуємо його через партнера в Польщі.</li></ul>
-<h2>Для яких процедур потрібні документи з України</h2>
-<ul><li><strong>Karta pobytu</strong> (тимчасова, постійна, CUKR, возз'єднання сім'ї) — свідоцтво про шлюб, свідоцтва про народження дітей, іноді витяг про несудимість.</li><li><strong>Транскрипція свідоцтва (umiejscowienie aktu)</strong> — внесення українського свідоцтва про народження, шлюб чи смерть до польського реєстру USC. Потрібна для польського паспорта дитини, PESEL за свідоцтвом, зміни прізвища після шлюбу, визнання розлучення. Вимагають <strong>оригінал</strong> свідоцтва українського зразка та присяжний переклад.</li><li><strong>Шлюб у польському USC</strong> — свідоцтво про народження, витяг про сімейний стан (odpis o stanie cywilnym) або рішення суду про розлучення, усе не старше за 3–6 місяців.</li><li><strong>Громадянство (obywatelstwo)</strong> — свідоцтва про народження (своє та батьків), про шлюб, витяг про несудимість з України.</li><li><strong>Спадщина, судові справи, нотаріус</strong> — свідоцтво про смерть, документи про споріднення.</li></ul>
-<p class="callout">Старе свідоцтво радянського зразка або з пошкодженнями USC часто відхиляє. Рішення — отримати <a href="/svidotstvo-pro-narodzhennya/">повторне свідоцтво</a> українського зразка; саме його ми й отримуємо за ордером.</p>""",
-    cases=dict(title="Типові пакети для Польщі", cols=("Процедура","Що просять","Що робимо ми"), rows=[
-        ("Karta pobytu (возз'єднання сім'ї)","свідоцтво про шлюб, свідоцтва про народження дітей","отримуємо повторні свідоцтва нового зразка, апостиль за бажанням, DHL у Польщу"),
-        ("PESEL / паспорт дитині через umiejscowienie","оригінал свідоцтва про народження + присяжний переклад","повторне свідоцтво + апостиль; переклад — присяжний у Польщі"),
-        ("Шлюб в USC","свідоцтво про народження, витяг про сімейний стан, документ про розлучення","свідоцтво + витяг з ДРАЦС (свіжі), за потреби копія рішення суду"),
-        ("Obywatelstwo","свідоцтва про народження, шлюб, несудимість","повний пакет, усе з апостилем, одним відправленням"),
-        ("Спадщина / нотаріус","свідоцтво про смерть, підтвердження споріднення","свідоцтва про смерть, народження, шлюб з апостилем"),
-    ], note="Перелік орієнтовний: воєводські управління й USC у різних містах трактують вимоги по-різному. Надішліть, що саме від вас просять — скажемо, який мінімальний комплект потрібен."),
-    diia=["Якщо маєте Дія.Підпис — замовте повторне свідоцтво у Дії з доставкою родичам в Україні.", "Попросіть їх переслати оригінал вам Укрпоштою / Novа Poshta Global у Польщу.", "У Польщі зробіть присяжний переклад і подайте в установу."],
-    diia_note="Працює, якщо є Дія.Підпис, родичі в Україні і запис є в електронному реєстрі. Апостиль у такому варіанті доведеться організовувати окремо.",
-    lawyer=[
-        ("Немає Дія.Підпису (польський номер, немає BankID)", "Отримуємо документ за ордером, довіреність і консульство не потрібні."),
-        ("USC відхилив старе свідоцтво", "Отримуємо повторне свідоцтво українського зразка, за потреби з апостилем."),
-        ("Запису немає в реєстрі", "Звертаємось до архіву ДРАЦС, добиваємось внесення запису, тоді отримуємо документ."),
-        ("Потрібно для кількох установ одразу", "Кілька примірників, кожен з апостилем, одним відправленням у Польщу."),
-    ],
-    need=["Для якої процедури та в яке місто/установу подаєте", "ПІБ, дати, місця реєстрації актів", "Фото/скан паспорта для договору", "Адреса в Польщі для доставки"],
-    faq=[
-        ("Чи потрібен апостиль на українське свідоцтво для Польщі?", "За Договором про правову допомогу 1993 р. — ні. Але частина установ його все ж просить. Якщо документ подаватиметься в кілька місць або ви не впевнені — радимо ставити; це кілька днів і невеликі витрати в Україні проти тижнів на повторну відправку."),
-        ("Чи можна зробити переклад в Україні?", "Для польських державних установ — ні: потрібен присяжний перекладач, внесений до реєстру в Польщі, або консул. Переклад з українського нотаріального засвідчення USC не прийме."),
-        ("Скільки «живе» свідоцтво для USC?", "Свідоцтва про народження/шлюб безстрокові, але для реєстрації шлюбу USC зазвичай просить витяг про сімейний стан не старший за 3–6 місяців. Уточнюйте в конкретному USC."),
-        ("Як швидко документ буде в Польщі?", "Отримання — від 1 робочого дня, апостиль — ще кілька днів, кур'єр в Польщу — 2–4 дні. Точні строки називаємо в розрахунку."),
-    ],
-),
-dict(
-    slug="svidotstvo-pro-narodzhennya", doc="narodzhennya",
-    title="Дублікат свідоцтва про народження: як отримати в Україні та за кордоном",
-    desc="Повторне свідоцтво про народження (дублікат): хто може отримати, як замовити в Дії за 0,51 грн, і що робити, якщо ви за кордоном або запису немає в реєстрі. Отримання через адвоката без довіреності, апостиль, переклад.",
-    h1="Дублікат свідоцтва про народження",
-    lead="Втратили свідоцтво або потрібен документ нового зразка для апостиля? Повторне свідоцтво про народження має таку саму силу, як оригінал. Розповідаємо, як отримати його самостійно, і забираємо за вас, якщо ви за кордоном.",
-    intro="""<p>Повторне свідоцтво про народження — це новий бланк, виданий на підставі актового запису з позначкою «Повторно». У побуті його називають дублікатом. Воно видається, якщо оригінал <strong>втрачено, вкрадено, пошкоджено</strong> або після внесення змін до актового запису. Окремий частий випадок — <strong>старе свідоцтво радянського зразка</strong>: іноземні установи й апостиль вимагають документ українського зразка, тож його отримують повторно навіть за наявності оригіналу.</p>
-<h2>Хто може отримати</h2>
-<ul><li>особа, щодо якої складено запис (з 14 років — на себе);</li><li>батьки, усиновлювачі, опікуни, піклувальники;</li><li>представник за нотаріальною довіреністю;</li><li><strong>адвокат за ордером</strong> з копією договору про правову допомогу — саме так працюємо ми.</li></ul>
-<h2>Для чого найчастіше потрібен</h2>
-<ul><li>закордонний паспорт дитині, громадянство або ВНЖ за кордоном;</li><li>оформлення спадщини, встановлення родинних зв'язків;</li><li>шлюб за кордоном, возз'єднання сім'ї;</li><li>заміна паспорта, вступ до навчальних закладів.</li></ul>""",
-    diia=DIIA_DRACS, diia_note=DIIA_NOTE_DRACS, lawyer=COMMON_LAWYER,
-    need=["ПІБ, дата і місце народження особи", "ПІБ батьків (як у записі)", "Орієнтовно, де і коли реєстрували народження (місто, відділ)", "Фото/скан вашого паспорта для договору", "Країна й адреса доставки"],
-    faq=[
-        ("Скільки коштує дублікат свідоцтва про народження?", "Державне мито — 0,51 грн. Якщо отримуєте через адвоката, оплачується правова допомога, апостиль, переклад і доставка. Точну суму надсилаємо після перевірки запису в реєстрі."),
-        ("Чи можна отримати свідоцтво про народження батьків або померлого родича?", "Так, за наявності підстав (спадщина, підтвердження родинних зв'язків). Потрібно підтвердити споріднення — ми підкажемо, які документи знадобляться."),
-        ("Чи потрібно їхати в місто, де мене зареєстрували?", "Ні. Повторне свідоцтво видає будь-який відділ ДРАЦС в Україні на підставі електронного реєстру. Якщо запису в реєстрі немає, звернення направляють до відділу за місцем реєстрації — це робимо ми."),
-        ("Чи підходить повторне свідоцтво для апостиля?", "Так, і саме воно потрібне: апостиль Мін'юст ставить на свідоцтва українського зразка. На старе свідоцтво радянського зразка апостиль не проставляють."),
-    ],
-),
-dict(
-    slug="svidotstvo-pro-shlyub", doc="shlyub",
-    title="Дублікат свідоцтва про шлюб: отримати в Україні та за кордоном",
-    desc="Повторне свідоцтво про шлюб: як замовити в Дії, хто може отримати, апостиль і переклад для подання за кордоном. Отримання через адвоката без нотаріальної довіреності, доставка у будь-яку країну.",
-    h1="Дублікат свідоцтва про шлюб",
-    lead="Потрібне свідоцтво про шлюб для возз'єднання сім'ї, ВНЖ, спадщини або зміни прізвища за кордоном, а оригінал втрачено чи він старого зразка? Отримаємо повторне свідоцтво, поставимо апостиль і відправимо.",
-    intro="""<p>Повторне свідоцтво про шлюб видає будь-який відділ ДРАЦС на підставі актового запису. Отримати його може <strong>кожен із подружжя</strong> (за наявності шлюбу або після його припинення), а також представник за довіреністю чи адвокат за ордером.</p>
-<h2>Коли воно потрібне</h2>
-<ul><li>возз'єднання сім'ї, ВНЖ, громадянство в іншій країні;</li><li>підтвердження зміни прізвища (банки, роботодавці, документи за кордоном);</li><li>оформлення спадщини після смерті одного з подружжя;</li><li>розірвання шлюбу, якщо оригінал залишився в іншого з подружжя.</li></ul>
-<h2>Важливий нюанс для тих, хто за кордоном</h2>
-<p>Іноземні установи приймають лише свідоцтво <strong>українського зразка з апостилем</strong>. Свідоцтва, видані до 1990-х, апостилюванню не підлягають, тому їх отримують повторно. Якщо шлюб припинено, на повторному свідоцтві буде відповідна відмітка — для частини процедур це важливо.</p>""",
-    diia=DIIA_DRACS, diia_note=DIIA_NOTE_DRACS, lawyer=COMMON_LAWYER,
-    need=["ПІБ обох з подружжя до і після шлюбу", "Дата та місце реєстрації шлюбу (орієнтовно)", "Фото/скан вашого паспорта для договору", "Країна подання (для апостиля і перекладу) та адреса доставки"],
-    faq=[
-        ("Чи може один із подружжя отримати свідоцтво без згоди іншого?", "Так. Кожен із подружжя має самостійне право на повторне свідоцтво про шлюб."),
-        ("Ми розлучені. Чи видадуть повторне свідоцтво про шлюб?", "Так, з відміткою про припинення шлюбу. Якщо вам потрібен документ саме про розірвання, дивіться <a href=\"/svidotstvo-pro-rozirvannya-shlyubu/\">окрему сторінку</a>."),
-        ("Скільки часу займає отримання з апостилем і доставкою в ЄС?", "Орієнтовно: отримання свідоцтва — від 1 робочого дня, апостиль у Мін'юсті — ще кілька днів, кур'єрська доставка — 3–7 днів. Точні строки надсилаємо в розрахунку."),
-    ],
-),
-dict(
-    slug="svidotstvo-pro-rozirvannya-shlyubu", doc="rozirvannya",
-    title="Свідоцтво та витяг про розірвання шлюбу: де взяти і як отримати за кордоном",
-    desc="Який документ підтверджує розлучення: свідоцтво про розірвання шлюбу, витяг з ДРАЦС або рішення суду. Як отримати в Дії, через ДРАЦС або через адвоката за ордером. Апостиль і переклад для подання за кордон.",
-    h1="Свідоцтво та витяг про розірвання шлюбу",
-    lead="Який саме документ потрібен для підтвердження розлучення, залежить від того, як і коли розірвано шлюб. Пояснюємо різницю і отримуємо потрібний документ, навіть якщо ви за кордоном.",
-    intro="""<h2>Який документ підтверджує розірвання шлюбу</h2>
-<ul><li><strong>Шлюб розірвано в ДРАЦС</strong> (за спільною заявою подружжя без дітей, або за заявою одного з подружжя у випадках, визначених законом) — видається свідоцтво про розірвання шлюбу; його можна отримати повторно.</li><li><strong>Шлюб розірвано судом після 27.07.2010</strong> — документом є <strong>рішення суду</strong>, що набрало законної сили. ДРАЦС такі розлучення не реєструє і свідоцтво не видає. Якщо рішення втрачено, отримуємо копію в суді.</li><li><strong>Шлюб розірвано судом до 27.07.2010</strong> — рішення реєстрували в РАЦС, тому можна отримати повторне свідоцтво або витяг.</li></ul>
-<h2>Витяг про розірвання шлюбу</h2>
-<p>Витяг з Державного реєстру актів цивільного стану підтверджує факт реєстрації розірвання шлюбу і часто приймається замість свідоцтва. Також іноземні установи нерідко просять <strong>витяг про шлюб з відміткою про його розірвання</strong> — ми підкажемо, який варіант підійде у вашому випадку.</p>
-<p class="callout">Якщо ви ще не розлучені й перебуваєте за кордоном — ми ведемо такі справи дистанційно на сайті <a href="https://razvod-online.com.ua">razvod-online.com.ua</a>. Після рішення суду документи для подання за кордон оформлюємо тут.</p>""",
-    diia=DIIA_DRACS, diia_note=DIIA_NOTE_DRACS,
-    lawyer=COMMON_LAWYER[:3] + [("Розлучення через суд, рішення втрачено", "Отримуємо в суді копію рішення з відміткою про набрання законної сили, за потреби — витяг з ДРАЦС, апостиль на обидва документи та переклад.")],
-    need=["ПІБ обох колишніх подружжя", "Дата та спосіб розірвання шлюбу (ДРАЦС чи суд; який суд)", "Фото/скан вашого паспорта для договору", "Країна подання та адреса доставки"],
-    faq=[
-        ("Мені потрібно свідоцтво про розлучення для шлюбу за кордоном, а в мене лише рішення суду. Що робити?", "Для розлучень через суд після 2010 року свідоцтва не існує — подається рішення суду з апостилем і перекладом. Якщо установа наполягає на документі з ДРАЦС, оформлюємо витяг про шлюб з відміткою про розірвання."),
-        ("Чи можна поставити апостиль на рішення суду?", "Так, апостиль на судові рішення проставляє Мін'юст. Потрібна належно засвідчена копія рішення з відміткою про набрання законної сили."),
-        ("Колишній чоловік/дружина не віддає свідоцтво. Чи можу я отримати своє?", "Так, кожен із колишнього подружжя має самостійне право на повторне свідоцтво або витяг."),
-    ],
-),
-dict(
-    slug="svidotstvo-pro-smert", doc="smert",
-    title="Дублікат свідоцтва про смерть: як отримати для спадщини та за кордоном",
-    desc="Повторне свідоцтво про смерть: хто має право, як замовити в Дії, що робити спадкоємцям за кордоном. Отримання через адвоката без довіреності, апостиль, переклад, доставка.",
-    h1="Дублікат свідоцтва про смерть",
-    lead="Найчастіше потрібен для оформлення спадщини, пенсій чи виплат за кордоном. Отримаємо повторне свідоцтво або витяг про смерть за вас і підготуємо його для подання в іноземні установи.",
-    intro="""<p>Повторне свідоцтво про смерть видається на підставі актового запису про смерть. Отримати його можуть <strong>другий з подружжя, діти, батьки, інші родичі та спадкоємці</strong> за документами, що підтверджують споріднення або право на спадщину, а також представник за довіреністю чи адвокат за ордером.</p>
-<h2>Коли потрібен</h2>
-<ul><li>відкриття спадщини в Україні або за кордоном;</li><li>оформлення пенсії у зв'язку з втратою годувальника, страхових виплат;</li><li>підтвердження сімейного стану (вдівство) для шлюбу або ВНЖ за кордоном;</li><li>зняття померлого з реєстрації, переоформлення майна.</li></ul>
-<h2>Свідоцтво чи витяг?</h2>
-<p>Нотаріуси в Україні зазвичай вимагають свідоцтво; іноземні установи часто приймають витяг з ДРАЦС про смерть, який містить більше даних. Підкажемо, що саме запросити, щоб не робити двічі.</p>""",
-    diia=DIIA_DRACS, diia_note=DIIA_NOTE_DRACS,
-    lawyer=COMMON_LAWYER[:3] + [("Спадщина за кордоном", "Готуємо повний комплект для іноземного нотаріуса чи суду: свідоцтво про смерть, свідоцтва, що підтверджують споріднення, витяги — усе з апостилем і перекладом.")],
-    need=["ПІБ померлого, дата і місце смерті", "Ваш зв'язок з померлим та документи, що його підтверджують", "Фото/скан вашого паспорта для договору", "Країна подання та адреса доставки"],
-    faq=[
-        ("Я не родич, але спадкоємець за заповітом. Чи видадуть мені свідоцтво про смерть?", "Так, за наявності документів, що підтверджують право на спадщину (заповіт, звернення нотаріуса). Ми допоможемо зібрати підстави."),
-        ("Чи можна отримати свідоцтво про смерть, що сталася на окупованій території?", "Якщо смерть зареєстровано українським ДРАЦС — так. Якщо є лише документи окупаційної адміністрації, факт смерті встановлюється через суд в Україні; ми ведемо такі справи."),
-        ("Скільки займає отримання для спадкоємця за кордоном?", "Від 1 робочого дня на отримання плюс апостиль і доставка. Точні строки — у розрахунку після перевірки запису."),
-    ],
-),
-dict(
-    slug="vytyag-dracs", doc="vytyag",
-    title="Витяг з ДРАЦС (реєстру актів цивільного стану): як отримати онлайн та за кордоном",
-    desc="Витяг з Державного реєстру актів цивільного стану про шлюб, народження, розірвання шлюбу, смерть, сімейний стан: як замовити в Дії за 73 грн, і як отримати через адвоката без довіреності з апостилем і перекладом.",
-    h1="Витяг з Державного реєстру актів цивільного стану",
-    lead="Витяг з ДРАЦС підтверджує факт реєстрації акта і містить дані, яких немає у свідоцтві. Саме його найчастіше просять іноземні установи. Отримаємо потрібний витяг і підготуємо для подання за кордон.",
-    intro="""<h2>Які витяги видає ДРАЦС</h2>
-<ul><li><strong>про шлюб</strong> — чинний чи припинений, з даними обох подружжя;</li><li><strong>про сімейний стан</strong> (відсутність зареєстрованого шлюбу) — для шлюбу за кордоном;</li><li><strong>про народження</strong> — з даними про батьків, зміни в записі;</li><li><strong>про розірвання шлюбу</strong> — для розлучень, зареєстрованих у ДРАЦС;</li><li><strong>про смерть</strong>;</li><li>архівні довідки й витяги для підтвердження родинних зв'язків, зміни імені.</li></ul>
-<h2>Витяг чи свідоцтво?</h2>
-<p>Свідоцтво — документ про подію. Витяг — довідка з реєстру станом на дату, з усіма відмітками. Для ВНЖ, шлюбу чи спадщини за кордоном часто потрібні обидва; ми скажемо, що саме просити у вашому випадку, щоб не платити за зайве.</p>
-<p class="callout">Витяг видається у будь-якому відділі ДРАЦС незалежно від місця реєстрації акта, якщо запис є в електронному реєстрі. Для старих записів спершу потрібно внести їх до реєстру — цим займаємось ми.</p>""",
-    diia=DIIA_DRACS, diia_note=DIIA_NOTE_DRACS, lawyer=COMMON_LAWYER,
-    need=["Який саме витяг і для якої установи/країни", "ПІБ особи (осіб), дата й місце події", "Фото/скан вашого паспорта для договору", "Адреса доставки"],
-    faq=[
-        ("Скільки діє витяг з ДРАЦС?", "Законом строк дії не встановлено, але іноземні установи зазвичай просять документ не старший за 3–6 місяців. Уточнюйте в установі, куди подаєте."),
-        ("Чи можна поставити апостиль на витяг?", "Так, апостиль на витяги з ДРАЦС проставляє Мін'юст. Після апостиля робимо засвідчений переклад."),
-        ("Чи приймають за кордоном електронний витяг з Дії?", "Для подання в іноземні установи потрібен паперовий витяг з печаткою ДРАЦС та апостилем. Електронна форма зручна для використання в Україні."),
-    ],
-),
-dict(
-    slug="vytyag-pro-nesudymist", doc="nesudymist",
-    title="Витяг (довідка) про несудимість з апостилем для подання за кордон",
-    desc="Витяг про несудимість: як отримати безкоштовно в Дії та на порталі МВС, строк дії, апостиль і переклад для візи, ВНЖ, роботи чи громадянства. Отримання через адвоката для тих, хто за кордоном або без Дія.Підпису.",
-    h1="Витяг про несудимість з апостилем для подання за кордон",
-    lead="Для візи, ВНЖ, роботи, усиновлення чи громадянства зазвичай потрібен паперовий витяг з печаткою МВС, апостилем і перекладом. Електронний витяг у Дії безкоштовний — пояснюємо, коли його достатньо, а коли ні.",
-    intro="""<h2>Що це за документ</h2>
-<p>Витяг з інформаційно-аналітичної системи МВС про притягнення до кримінальної відповідальності, відсутність (наявність) судимості або обмежень. Формує його Департамент інформатизації МВС. Є <strong>скорочений</strong> (тільки факт наявності судимості) та <strong>повний</strong> (з відомостями про зняття чи погашення судимості) — для більшості іноземних установ потрібен повний.</p>
-<h2>Як отримати самостійно — безкоштовно</h2>
-<ol><li>Через <strong>портал «Єдине вікно» МВС</strong> (services.mvs.gov.ua): авторизація через Дія.Підпис, КЕП або BankID → заява → вибір формату: електронний PDF з QR-кодом або паперовий → за потреби замовлення апостиля → доставка Укрпоштою.</li><li>Через <strong>застосунок Дія</strong>: Сервіси → Довідки та витяги → Витяг про несудимість → тип витягу й мета запиту.</li></ol>
-<p>Строк формування — до 10 робочих днів, при додатковій перевірці — до 30 календарних днів. Сервісні центри МВС витяги не видають.</p>
-<h2>Строк дії</h2>
-<p>В Україні установи зазвичай приймають витяг не старший за 30 днів; для іноземних установ — як правило, до 90 днів з дати видачі. Плануйте дату так, щоб встигнути з апостилем, перекладом і доставкою.</p>
-<p class="callout">Чесно: якщо у вас є Дія.Підпис і вам достатньо електронного витягу або паперового в Україні — зробіть це самостійно. Ми потрібні, коли немає доступу до Дії, потрібен апостиль, переклад і доставка за кордон, або документ потрібен для кількох країн одразу.</p>""",
-    diia=["Увійдіть на services.mvs.gov.ua або в застосунок Дія.", "Оберіть «Витяг про несудимість», тип (повний / скорочений) і мету запиту.", "Оберіть формат: електронний з QR-кодом або паперовий.", "Для паперового — замовте апостиль (за потреби) та доставку Укрпоштою.", "Очікуйте до 10 робочих днів; витяг надійде на email / у кабінет."],
-    diia_note="Не вдається авторизуватись (немає української SIM для Дії, BankID українського банку чи КЕП)? Це найчастіша причина, з якою до нас звертаються з-за кордону.",
-    lawyer=[
-        ("Немає Дія.Підпису чи BankID", "Отримуємо паперовий витяг за ордером, далі — апостиль і переклад."),
-        ("Потрібен апостиль і переклад для конкретної країни", "Підбираємо потрібний варіант легалізації (апостиль, подвійний апостиль, консульська легалізація) і засвідчений переклад мовою країни подання."),
-        ("Витяг для кількох країн або установ", "Отримуємо потрібну кількість примірників, кожен з апостилем і перекладом."),
-        ("Є судимість, погашена чи знята", "Консультуємо, який витяг і які додаткові документи подавати, щоб не отримати відмову у візі чи ВНЖ."),
-    ],
-    need=["ПІБ, дата народження, РНОКПП", "Мета (країна, установа) — впливає на тип витягу та легалізацію", "Фото/скан паспорта для договору", "Адреса доставки"],
-    faq=[
-        ("Чи можна прискорити витяг про несудимість?", "Ні. Строк формує МВС, і сервіси, які обіцяють «за 1 день», або працюють на межі правил, або беруть гроші за те, що й так відбувається швидко. Ми називаємо реальні строки."),
-        ("Чи приймають за кордоном електронний витяг з QR-кодом?", "Для більшості іноземних установ потрібен паперовий витяг з апостилем. Електронний підходить для використання в Україні (роботодавець, тендер)."),
-        ("Хто ставить апостиль на витяг про несудимість?", "Апостиль на витяги проставляє МВС; його можна замовити одразу при формуванні витягу. Після цього робиться засвідчений переклад."),
-        ("Чи може адвокат отримати витяг на іншу особу?", "Так, на підставі договору про правову допомогу та ордера, з даними особи, щодо якої запитується витяг."),
-    ],
-),
-dict(
-    slug="apostyl", doc="kilka",
-    title="Апостиль на свідоцтва ДРАЦС та витяг про несудимість — з перекладом і доставкою",
-    desc="Апостиль на свідоцтво про народження, шлюб, смерть, витяги з ДРАЦС і витяг про несудимість. Які документи підлягають апостилю, коли потрібен подвійний апостиль або консульська легалізація, переклад і відправка за кордон.",
-    h1="Апостиль на документи ДРАЦС та МВС",
-    lead="Апостиль робить український документ чинним у країнах Гаазької конвенції. Отримуємо документ, апостилюємо, перекладаємо й відправляємо — одним пакетом.",
-    intro="""<h2>Хто проставляє апостиль</h2>
-<ul><li><strong>Мін'юст</strong> — на свідоцтва ДРАЦС, витяги з реєстру актів цивільного стану, судові рішення, нотаріальні документи;</li><li><strong>МВС</strong> — на витяги про несудимість (можна замовити разом із витягом);</li><li><strong>МОН</strong> — на дипломи та додатки (не наша спеціалізація, але підкажемо).</li></ul>
-<h2>Які документи не апостилюють</h2>
-<p>Свідоцтва радянського зразка, ламіновані документи, документи з виправленнями чи пошкодженнями. Рішення — отримати <strong>повторне свідоцтво українського зразка</strong> і апостилювати його. Саме тому «дублікат + апостиль» — наш найчастіший пакет.</p>
-<h2>Апостиль, подвійний апостиль чи легалізація</h2>
-<ul><li><strong>Апостиль</strong> — для країн Гаазької конвенції (ЄС, Велика Британія, США, Канада, Ізраїль тощо).</li><li><strong>Подвійний апостиль</strong> — апостиль на оригінал + апостиль на нотаріально засвідчений переклад; його вимагають окремі країни для окремих процедур — скажіть, куди подаєте, і ми уточнимо.</li><li><strong>Консульська легалізація</strong> — для країн поза конвенцією (ОАЕ, Китай для деяких документів, Канада до 2024 тощо).</li></ul>
-<p class="callout">Скажіть країну та установу, куди подаєте, — ми підберемо правильний варіант. Помилка тут коштує тижнів і повторної відправки.</p>""",
-    diia=["Отримайте документ українського зразка (повторне свідоцтво, витяг).", "Подайте оригінал у міжрегіональне управління Мін'юсту (для документів ДРАЦС) особисто або поштою; для витягу про несудимість — замовте апостиль на порталі МВС.", "Сплатіть збір за проставлення апостиля та за опрацювання документа.", "Отримайте документ з апостилем; за потреби зробіть засвідчений переклад."],
-    diia_note="Самостійно це реально, якщо ви в Україні. З-за кордону потрібно пересилати оригінали поштою в обидві сторони — ризик і час.",
-    lawyer=[
-        ("Ви за кордоном", "Отримуємо документ, апостилюємо, перекладаємо й відправляємо готовий комплект — оригінали не їздять туди-сюди."),
-        ("Документ старого зразка", "Спочатку отримуємо повторне свідоцтво українського зразка, потім апостиль."),
-        ("Складна країна подання", "Подвійний апостиль, акредитований переклад або консульська легалізація — робимо за правилами конкретної країни."),
-        ("Кілька документів одразу", "Пакет для возз'єднання сім'ї, ВНЖ чи спадщини: усі свідоцтва, витяги та несудимість — з апостилем і перекладом."),
-    ],
-    need=["Перелік документів і країна/установа подання", "Оригінали або дані для отримання повторних документів", "Фото/скан паспорта для договору", "Адреса доставки"],
-    faq=[
-        ("Чи потрібен переклад після апостиля?", "Майже завжди так — апостиль не перекладає документ. Для деяких країн переклад має робити присяжний або акредитований перекладач — підкажемо."),
-        ("Скільки діє апостиль?", "Апостиль безстроковий, але установи можуть обмежувати «свіжість» самого документа (витяги, несудимість)."),
-        ("Чи можна апостилювати копію?", "На документи ДРАЦС апостиль ставлять лише на оригінал (зокрема повторне свідоцтво). Нотаріальну копію апостилюють окремо як нотаріальний документ — приймають не всюди."),
-    ],
-),
-dict(
-    slug="dlya-ukraintsiv-za-kordonom", doc="kilka",
-    title="Документи з України для тих, хто за кордоном — без довіреності та консульства",
-    desc="Як отримати документи з України, перебуваючи за кордоном: свідоцтва ДРАЦС, витяги, витяг про несудимість — через адвоката за ордером, без нотаріальної довіреності, з апостилем, перекладом і доставкою.",
-    h1="Документи з України для тих, хто за кордоном",
-    lead="Ви в Польщі, Німеччині, Чехії, Італії, Канаді чи США, а документ потрібен з українського ДРАЦС або МВС. Ми отримуємо його за вас і доставляємо — без довіреності, консульства й поїздки.",
-    intro="""<h2>Чому з-за кордону це складно</h2>
-<ul><li>Дія.Підпис потребує української SIM і банківської ідентифікації; у багатьох за кордоном їх немає.</li><li>Консульства записують на тижні вперед, а нотаріальну довіреність ще треба переслати в Україну.</li><li>Укрпошта з Дії доставляє лише в межах України.</li><li>Старі записи часто не оцифровані, і Дія просто відмовляє.</li></ul>
-<h2>Як це вирішуємо</h2>
-<p>Укладаємо з вами договір про правову допомогу дистанційно. На його підставі адвокат отримує ордер — документ, який за законом замінює довіреність для отримання повторних свідоцтв і витягів. Далі все відбувається в Україні: ДРАЦС, архів, МВС, апостиль, переклад. Ви отримуєте скан одразу й оригінал кур'єром із трек-номером.</p>
-<h2>Типові пакети</h2>
-<ul><li><strong>Польща</strong> — окрема сторінка: <a href="/polshcha/">документи для карти побиту, USC, громадянства</a>.</li><li><strong>Возз'єднання сім'ї / ВНЖ</strong>: свідоцтво про шлюб + про народження дітей + несудимість, усе з апостилем і перекладом.</li><li><strong>Шлюб за кордоном</strong>: витяг про сімейний стан + свідоцтво про народження (+ про розірвання шлюбу).</li><li><strong>Громадянство</strong>: свідоцтва про народження (своє та батьків), про шлюб, несудимість.</li><li><strong>Спадщина</strong>: свідоцтво про смерть + документи про споріднення + <a href="/rnokpp/">РНОКПП</a> спадкоємця.</li></ul>""",
-    diia=["Якщо у вас є Дія.Підпис — замовте документ у Дії з доставкою на адресу родичів в Україні.", "Попросіть родичів відправити документ вам міжнародною поштою.", "Апостиль доведеться оформлювати окремо — особисто в Україні або через представника."],
-    diia_note="Цей шлях працює, якщо є Дія.Підпис, родичі в Україні, запис є в реєстрі і не потрібен апостиль. Інакше — простіше через нас.",
-    lawyer=COMMON_LAWYER,
-    need=["Список документів і країна/установа подання", "Основні дані (ПІБ, дати, місця реєстрації)", "Фото/скан паспорта для договору", "Адреса доставки"],
-    faq=[
-        ("Як ми підпишемо договір, якщо я за кордоном?", "Дистанційно: ви отримуєте договір на email, підписуєте електронно або надсилаєте скан підписаного примірника. Цього достатньо для ордера."),
-        ("Чи потрібно пересилати в Україну оригінали?", "Ні. Для повторних свідоцтв і витягів оригінали не потрібні. Для апостиля на наявний у вас документ — потрібно, але зазвичай простіше отримати повторний в Україні."),
-        ("Як оплатити з-за кордону?", "Карткою онлайн, SWIFT або в інший зручний спосіб — підкажемо в розрахунку."),
-        ("Скільки коштує доставка?", "Укрпошта міжнародна або DHL/FedEx; вартість залежить від країни і показується окремо в розрахунку."),
-    ],
-),
-]
-
+# ---------------------------------------------------------------- внутрішні сторінки
 def cases_block(cases):
     if not cases: return ""
-    rows = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td></tr>" for a, b, c in cases["rows"])
-    return f"""<section class="section section--alt"><div class="wrap stack-lg"><h2>{cases['title']}</h2>
-<div class="table-wrap scrollable" data-hint="Проведіть пальцем, щоб побачити всі колонки →"><table class="tbl" aria-label="{html.escape(cases['title'])}"><thead><tr><th scope="col">{cases['cols'][0]}</th><th scope="col">{cases['cols'][1]}</th><th scope="col" class="accent">{cases['cols'][2]}</th></tr></thead><tbody>{rows}</tbody></table></div>
-<p class="muted">{cases.get('note','')}</p></div></section>
+    c = cases["cols"]
+    rows = "".join(f'<tr><td>{a}</td><td data-label="{c[1]}">{b}</td><td data-label="{c[2]}">{d}</td></tr>' for a, b, d in cases["rows"])
+    return f"""<section class="s"><div class="wrap"><h2>{cases['title']}</h2>
+<div class="tblwrap glass"><table aria-label="{html.escape(cases['title'])}"><thead><tr><th scope="col">{c[0]}</th><th scope="col">{c[1]}</th><th scope="col">{c[2]}</th></tr></thead><tbody>{rows}</tbody></table></div>
+<p class="note" style="margin-top:14px">{cases.get('note','')}</p></div></section>
 """
 
-# ---------------------------------------------------------------- inner template
 def build_page(p):
     path = f"/{p['slug']}/"
+    draft = p.get("draft", False)
     crumbs_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Головна", "item": SITE["domain"] + "/"},
         {"@type": "ListItem", "position": 2, "name": p["h1"], "item": SITE["domain"] + path}]}
-    h = head(f"{p['title']} | {SITE['name']}", p["desc"], path, [faq_ld(p["faq"]), crumbs_ld])
+    h = head(f"{p['title']} | {SITE['name']}", p["desc"], path, [faq_ld(p["faq"]), crumbs_ld], noindex=draft)
     diia = "".join(f"<li>{s}</li>" for s in p["diia"])
-    lawyer = "".join(f"<div class='tile'><strong>{t}</strong><p>{d}</p></div>" for t, d in p["lawyer"])
+    lawyer = "".join(f"<div class='tile glass'><strong>{t}</strong><p>{d}</p></div>" for t, d in p["lawyer"])
     need = "".join(f"<li>{n}</li>" for n in p["need"])
+    country = p.get("country", "Польща")
+    note = '<div class="draft"><strong>Чернетка на перевірці адвоката.</strong> Сторінка закрита від пошуковиків і не має посилань із сайту.</div>' if draft else ""
     body = f"""{header()}
 <main>
-<section class="page-hero">
-  <div class="wrap">
-    <nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><span>{html.escape(p['h1'])}</span></nav>
-    <div class="grid grid-2" style="margin-top:24px">
-      <div class="stack" style="gap:20px">
-        <h1>{p['h1']}</h1>
-        <p class="lead">{p['lead']}</p>
-        <div class="cta-row"><a class="btn btn-primary" href="#form">Дізнатися вартість</a><a class="btn btn-secondary" href="#diia">Як зробити самому</a></div>
-      </div>
-      {form(p['doc'])}
-    </div>
-  </div>
-</section>
+<section class="phero"><div class="wrap">
+<nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><span>{html.escape(p['h1'])}</span></nav>
+{note}<div class="hgrid">
+<div><h1>{p['h1']}</h1><p class="lead">{p['lead']}</p>
+<div class="row"><a class="btn" href="#form">Дізнатись вартість і строк</a><a class="btn ghost" href="#diia">Як зробити самому</a></div></div>
+{cfg(p['doc'], country)}
+</div></div></section>
 
-<section class="section"><div class="wrap narrow prose">{p['intro']}</div></section>
+<section class="s"><div class="wrap narrow"><div class="prose solid">{p['intro']}</div></div></section>
 {cases_block(p.get('cases'))}
-<section class="section section--alt" id="diia">
-  <div class="wrap narrow stack-lg">
-    <div class="stack" style="gap:10px"><h2>Як отримати самостійно</h2><p class="lead" style="max-width:none">Якщо ви в Україні і маєте Дія.Підпис — спробуйте спершу цей шлях.</p></div>
-    <ol class="prose" style="padding-left:22px">{diia}</ol>
-    <p class="callout">{p['diia_note']}</p>
-  </div>
-</section>
+<section class="s" id="diia"><div class="wrap narrow">
+<span class="eyebrow">Самостійно</span><h2>Як отримати самому</h2><p class="lead">Якщо ви в Україні і маєте Дія.Підпис — спробуйте спершу цей шлях.</p>
+<ol class="olist">{diia}</ol>
+<p class="callout" style="margin-top:16px">{p['diia_note']}</p>
+</div></section>
 
-<section class="section">
-  <div class="wrap stack-lg">
-    <h2>Коли потрібен адвокат</h2>
-    <div class="grid grid-2" style="gap:24px">{lawyer}</div>
-  </div>
-</section>
+<section class="s"><div class="wrap"><span class="eyebrow">Через адвоката</span><h2>Коли потрібен адвокат</h2><div class="grid2">{lawyer}</div></div></section>
 
-<section class="section section--alt">
-  <div class="wrap narrow stack-lg">
-    <h2>Що потрібно від вас</h2>
-    <ul class="prose" style="padding-left:22px">{need}</ul>
-    <p class="muted">Жодних оригіналів пересилати не потрібно. Усе спілкування — у месенджері або email.</p>
-  </div>
-</section>
+<section class="s"><div class="wrap narrow"><span class="eyebrow">Від вас</span><h2>Що потрібно від вас</h2>
+<ul class="nlist">{need}</ul>
+<p class="note" style="margin-top:14px">Жодних оригіналів пересилати не потрібно. Усе спілкування — у месенджері.</p>
+</div></section>
 
-{steps_block(poa=p.get('poa', False))}
-{faq_block(p['faq'])}
-{band()}
+{steps_static(poa=p.get('poa', False))}
+{lawyer_block()}
+{faq_block(p['faq'], "Часті питання")}
+{form_section(p['doc'], p.get('country'))}
 </main>
-{footer()}"""
+{footer(p['doc'], p.get('country'))}"""
     write(f"{p['slug']}/index.html", h + body)
 
-
-# ---------------------------------------------------------------- blog
+# ---------------------------------------------------------------- блог
 def fmt_date(d):
-    y,m,dd=d.split("-"); months=["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"]
+    y, m, dd = d.split("-"); months = ["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"]
     return f"{int(dd)} {months[int(m)-1]} {y}"
 
 def post_card(post):
-    return f"""<article class="card post-card"><span class="small">{fmt_date(post['date'])} · {post['minutes']} хв читання</span><h3><a href="/blog/{post['slug']}/">{html.escape(post['h1'])}</a></h3><p class="muted" style="margin-top:0">{html.escape(post['lead'][:180])}…</p><a class="more" href="/blog/{post['slug']}/">Читати →</a></article>"""
+    return f"""<article class="card glass"><span class="pmeta">{fmt_date(post['date'])} · {post['minutes']} хв читання</span><h3><a href="/blog/{post['slug']}/">{html.escape(post['h1'])}</a></h3><p>{html.escape(post['lead'][:180])}…</p><a class="more" href="/blog/{post['slug']}/" aria-label="Читати: {html.escape(post['h1'])}">Читати →</a></article>"""
 
 def build_blog_index():
     h = head(f"Блог: документи з України, ДРАЦС, апостиль, несудимість | {SITE['name']}",
@@ -662,10 +524,11 @@ def build_blog_index():
     cards = "".join(post_card(p) for p in sorted(POSTS, key=lambda x: x["date"], reverse=True))
     body = f"""{header()}
 <main>
-<section class="page-hero"><div class="wrap"><nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><span>Блог</span></nav>
-<div class="stack" style="gap:16px;margin-top:24px;max-width:760px"><h1>Блог</h1><p class="lead" style="max-width:none">Розбираємо реальні ситуації з документами ДРАЦС, апостилем і несудимістю — так, щоб ви могли або зробити самі, або точно знати, що замовляти.</p></div></div></section>
-<section class="section"><div class="wrap"><div class="grid grid-3">{cards}</div></div></section>
-{band()}
+<section class="phero"><div class="wrap"><nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><span>Блог</span></nav>
+<h1>Блог</h1><p class="lead">Розбираємо реальні ситуації з документами ДРАЦС, апостилем і несудимістю — так, щоб ви могли або зробити самі, або точно знати, що замовляти.</p></div></section>
+<section class="s" style="padding-top:10px"><div class="wrap"><div class="grid3">{cards}</div></div></section>
+<section class="s"><div class="wrap"><span class="eyebrow">План публікацій</span><h2>Рубрики й найближчі статті</h2>{blog_plan_block()}</div></section>
+{form_section()}
 </main>
 {footer()}"""
     write("blog/index.html", h + body)
@@ -673,8 +536,8 @@ def build_blog_index():
 def build_post(post):
     path = f"/blog/{post['slug']}/"
     ld = [{"@context":"https://schema.org","@type":"Article","headline":post["h1"],"description":post["desc"],
-           "datePublished":post["date"],"dateModified":post["date"],"inLanguage":"uk",
-           "author":{"@type":"Organization","name":SITE["lawyer"],"url":SITE["domain"]},
+           "datePublished":post["date"],"dateModified":post["date"],"inLanguage":"uk","image":SITE["domain"]+"/assets/og.png",
+           "author":{"@type":"Person","name":SITE["person"],"url":SITE["unba"]},
            "publisher":{"@type":"Organization","name":SITE["name"],"url":SITE["domain"]},
            "mainEntityOfPage":SITE["domain"]+path},
           {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
@@ -682,54 +545,48 @@ def build_post(post):
            {"@type":"ListItem","position":2,"name":"Блог","item":SITE["domain"]+"/blog/"},
            {"@type":"ListItem","position":3,"name":post["h1"],"item":SITE["domain"]+path}]}]
     h = head(f"{post['title']} | {SITE['name']}", post["desc"], path, ld)
-    rel_pages = [pp for pp in PAGES if pp["slug"] in post.get("related", [])]
-    related = "".join(f'<a class="tile" href="/{pp["slug"]}/" style="text-decoration:none"><strong>{html.escape(pp["h1"])}</strong><p>{html.escape(pp["lead"][:120])}…</p></a>' for pp in rel_pages)
+    rel_pages = [pp for pp in PAGES if pp["slug"] in post.get("related", []) and not pp.get("draft")]
+    related = "".join(f'<a class="tile glass" href="/{pp["slug"]}/"><strong>{html.escape(pp["h1"])}</strong><p>{html.escape(pp["lead"][:120])}…</p></a>' for pp in rel_pages)
     others = [pp for pp in POSTS if pp["slug"] != post["slug"]][:3]
     more = "".join(post_card(pp) for pp in others)
+    body_html = post["body"].replace("<table", '<div class="tblwrap"><table').replace("</table>", "</table></div>")
     body = f"""{header()}
 <main>
 <article>
-<section class="page-hero"><div class="wrap"><nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><a href="/blog/">Блог</a><span>›</span><span>{html.escape(post['h1'][:60])}…</span></nav>
-<div class="stack" style="gap:16px;margin-top:24px;max-width:820px"><span class="small">{fmt_date(post['date'])} · {post['minutes']} хв читання · {SITE['lawyer']}</span><h1>{html.escape(post['h1'])}</h1><p class="lead" style="max-width:none">{post['lead']}</p></div></div></section>
-<section class="section"><div class="wrap narrow prose post-body">{post['body']}</div></section>
-<section class="section section--alt"><div class="wrap grid grid-2" style="align-items:start">
-  <div class="stack"><h2>Не виходить самостійно?</h2><p class="lead" style="max-width:none">Опишіть ситуацію — скажемо чесно, чи варто платити, і якщо так, назвемо ціну та строк.</p>
-  <div class="stack" style="gap:12px">{related}</div></div>
-  {form(post['cta_doc'], 'Отримати розрахунок')}
-</div></section>
+<section class="phero"><div class="wrap narrow"><nav class="crumbs" aria-label="Хлібні крихти"><a href="/">Головна</a><span>›</span><a href="/blog/">Блог</a></nav>
+<span class="pmeta">{fmt_date(post['date'])} · {post['minutes']} хв читання · адвокат {SITE['person']}</span><h1 style="margin-top:10px">{html.escape(post['h1'])}</h1><p class="lead" style="max-width:none">{post['lead']}</p></div></section>
+<section class="s" style="padding-top:10px"><div class="wrap narrow"><div class="prose solid">{body_html}</div></div></section>
 </article>
-<section class="section"><div class="wrap stack-lg"><h2>Ще з блогу</h2><div class="grid grid-3">{more}</div></div></section>
+<section class="s"><div class="wrap"><span class="eyebrow">Пов'язані послуги</span><h2>Не виходить самостійно?</h2><p class="lead">Опишіть ситуацію — скажемо чесно, чи варто платити, і якщо так, назвемо ціну та строк.</p><div class="grid3">{related}</div></div></section>
+<section class="s"><div class="wrap"><h2>Ще з блогу</h2><div class="grid3">{more}</div></div></section>
+{form_section(post['cta_doc'])}
 </main>
-{footer()}"""
+{footer(post['cta_doc'])}"""
     write(f"blog/{post['slug']}/index.html", h + body)
 
-# ---------------------------------------------------------------- misc files
+# ---------------------------------------------------------------- службові файли
 def build_misc():
-    urls = ["/"] + [f"/{p['slug']}/" for p in PAGES] + ["/blog/"] + [f"/blog/{p['slug']}/" for p in POSTS]
+    urls = ["/"] + [f"/{p['slug']}/" for p in PAGES if not p.get("draft")] + ["/blog/"] + [f"/blog/{p['slug']}/" for p in POSTS]
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
         f"  <url><loc>{SITE['domain']}{u}</loc><lastmod>{TODAY}</lastmod><changefreq>monthly</changefreq><priority>{'1.0' if u == '/' else '0.8'}</priority></url>\n" for u in urls) + "</urlset>\n"
     write("sitemap.xml", sm)
     write("robots.txt", f"User-agent: *\nAllow: /\nSitemap: {SITE['domain']}/sitemap.xml\n")
-    write("assets/favicon.svg", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#1E4FD8"/><path d="M10 7h8l5 5v13H10z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M18 7v5h5M13 18l3 3 5-5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
-    h = head(f"Сторінку не знайдено | {SITE['name']}", "Сторінку не знайдено.", "/404.html")
-    write("404.html", h + header() + '<main><section class="section"><div class="wrap narrow stack"><h1>Сторінку не знайдено</h1><p class="lead">Можливо, адресу змінено. Перейдіть на <a href="/">головну</a> або оберіть документ у меню.</p></div></section></main>' + footer())
-    h = head(f"Політика конфіденційності | {SITE['name']}", "Політика обробки персональних даних сайту.", "/privacy.html")
-    write("privacy.html", h + header() + f'''<main><section class="section"><div class="wrap narrow prose">
-<h1>Політика конфіденційності</h1>
-<p>Цей сайт належить {SITE['lawyer']} ({SITE['city']}). Персональні дані, які ви залишаєте у формі заявки (контакт, країна, опис ситуації), використовуються виключно для підготовки відповіді та укладення договору про правову допомогу. Дані не передаються третім особам, крім випадків, передбачених законом, і зберігаються не довше, ніж потрібно для надання послуги.</p>
+    write("assets/favicon.svg", f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A33E3"/><stop offset="1" stop-color="#3A8CD8"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#g)"/><g transform="translate(7 7) scale(.78)"><path fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M58 30L34.29 42.77Q32 44 29.71 42.77L6 30L6 52Q6 56 10 56L54 56Q58 56 58 52L58 30L48 30Q45 30 45 27L45 9.2Q45 6 41.8 6L22.2 6Q19 6 19 9.2L19 27Q19 30 16 30L6 30"/></g></svg>')
+    h = head(f"Сторінку не знайдено | {SITE['name']}", "Сторінку не знайдено.", "/404.html", noindex=True)
+    write("404.html", h + header() + '<main><section class="s"><div class="wrap narrow"><h1>Сторінку не знайдено</h1><p class="lead">Можливо, адресу змінено. Перейдіть на <a href="/" style="color:var(--blue)">головну</a> або оберіть документ у меню.</p></div></section>' + form_section() + '</main>' + footer())
+    h = head(f"Політика конфіденційності | {SITE['name']}", "Політика обробки персональних даних сайту «Документи з України».", "/privacy.html")
+    contact = SITE["email"] or f'у Telegram або за телефоном {SITE["phone"]}'
+    write("privacy.html", h + header() + f'''<main><section class="s"><div class="wrap narrow"><div class="prose solid">
+<h1 style="font-size:clamp(1.8rem,4.5vw,2.6rem)">Політика конфіденційності</h1>
+<p>Цей сайт належить {SITE['lawyer']} ({SITE['city']}). Персональні дані, які ви залишаєте у формі заявки (ім'я, контакт, країна, документ), використовуються виключно для підготовки відповіді та укладення договору про правову допомогу. Дані не передаються третім особам, крім випадків, передбачених законом, і зберігаються не довше, ніж потрібно для надання послуги.</p>
+<p>Заявки з форми обробляє сервіс Formspree, який пересилає їх адвокату. Сайт не використовує рекламних cookies.</p>
 <p>Відомості, отримані адвокатом у зв'язку з наданням правової допомоги, є адвокатською таємницею відповідно до Закону України «Про адвокатуру та адвокатську діяльність».</p>
-<p>Ви можете в будь-який момент запросити видалення своїх даних, написавши на {SITE['email']}.</p>
-<p class="muted">[Доповнити: сервіс обробки форм, аналітика, cookies.]</p>
-</div></section></main>''' + footer())
+<p>Ви можете в будь-який момент запросити видалення своїх даних, написавши {contact}.</p>
+</div></div></section></main>''' + footer())
 
 def write(rel, content):
     path = os.path.join(OUT, rel)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    b = SITE["base"]
-    if b and rel.endswith((".html", ".xml", ".txt")):
-        content = content.replace('href="/', f'href="{b}/').replace('src="/', f'src="{b}/').replace('"item": SITE["domain"] + "/"', '"item": SITE["domain"] + "/"')
-        content = content.replace(f'href="{b}/{b.strip("/")}/', f'href="{b}/')  # на випадок подвоєння
-        content = content.replace(f'{SITE["domain"]}{b}/', f'{SITE["domain"]}/')  # domain вже містить base
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
     print("wrote", rel)

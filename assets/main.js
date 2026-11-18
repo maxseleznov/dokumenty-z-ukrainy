@@ -1,43 +1,29 @@
-/* Документи з України — site scripts (no dependencies) */
+/* Документи з України — скрипти сайту (без залежностей) */
 (function () {
-  // ---- CONFIG -----------------------------------------------------------
   var FORM_ENDPOINT = "https://formspree.io/f/xppdzqra";
-  var TELEGRAM_URL = "https://t.me/Online_Advokat_UA";
-  var WHATSAPP_URL = "https://wa.me/380937688416";
-  // ----------------------------------------------------------------------
-
+  var TG = "https://t.me/Online_Advokat_UA", WA = "https://wa.me/380937688416", VB = "viber://chat?number=%2B380937688416";
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-  $$("[data-tg]").forEach(function (a) { a.href = TELEGRAM_URL; });
-  $$("[data-wa]").forEach(function (a) { a.href = WHATSAPP_URL; });
-
-  /* ---------- toast (Sonner-like) ---------- */
+  /* ---------- тост ---------- */
   var toaster;
   function toast(kind, title, text) {
     if (!toaster) { toaster = document.createElement("div"); toaster.className = "toaster"; toaster.setAttribute("aria-live", "polite"); document.body.appendChild(toaster); }
-    var el = document.createElement("div");
-    el.className = "toast " + kind;
-    var icon = kind === "ok"
-      ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>'
-      : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/></svg>';
-    el.innerHTML = '<span class="toast-icon">' + icon + '</span><div><strong></strong><p></p></div>';
+    var el = document.createElement("div"); el.className = "toast " + kind;
+    el.innerHTML = '<span class="toast-icon">' + (kind === "ok" ? "✓" : "!") + '</span><div><strong></strong><p></p></div>';
     $("strong", el).textContent = title; $("p", el).textContent = text;
     toaster.appendChild(el);
     setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 260); }, 5000);
   }
 
-  /* ---------- mobile nav ---------- */
-  var toggle = $(".nav-toggle"), nav = $(".nav");
-  if (toggle && nav) {
-    toggle.addEventListener("click", function () {
-      var open = nav.classList.toggle("open");
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    });
-    $$("a", nav).forEach(function (a) { a.addEventListener("click", function () { nav.classList.remove("open"); toggle.setAttribute("aria-expanded", "false"); }); });
+  /* ---------- мобільне меню ---------- */
+  var burger = $(".burger"), mnav = $(".mnav");
+  if (burger && mnav) {
+    burger.addEventListener("click", function () { var o = mnav.classList.toggle("open"); burger.setAttribute("aria-expanded", o ? "true" : "false"); });
+    mnav.addEventListener("click", function (e) { if (e.target.tagName === "A") { mnav.classList.remove("open"); burger.setAttribute("aria-expanded", "false"); } });
   }
 
-  /* ---------- lead forms ---------- */
+  /* ---------- форми ---------- */
   function wireForm(form) {
     if (form.dataset.wired) return; form.dataset.wired = "1";
     var status = $(".form-status", form);
@@ -45,94 +31,115 @@
       e.preventDefault();
       var honey = $(".honey", form); if (honey && honey.value) return;
       var btn = $("button[type=submit]", form), contact = $("[name=contact]", form);
-      if (!contact || contact.value.trim().length < 5) {
-        toast("err", "Вкажіть контакт", "Telegram, WhatsApp або email — щоб ми могли відповісти.");
-        contact && contact.focus(); return;
-      }
-      btn.disabled = true; btn.setAttribute("aria-busy", "true");
+      if (!contact || contact.value.trim().length < 5) { toast("err", "Вкажіть контакт", "Telegram, WhatsApp або телефон — щоб ми могли відповісти."); contact && contact.focus(); return; }
+      btn.disabled = true;
       var data = new FormData(form); data.append("page", location.href);
+      function fail() { toast("err", "Не вдалося надіслати", "Напишіть нам у Telegram — відповімо так само швидко."); }
       fetch(FORM_ENDPOINT, { method: "POST", body: data, headers: { Accept: "application/json" } })
         .then(function (r) {
-          if (r.ok) {
-            form.reset();
-            toast("ok", "Заявку отримано", "Відповімо протягом робочого дня.");
-            if (status) { status.className = "form-status ok"; status.textContent = "Дякуємо! Заявку отримано. Відповімо протягом робочого дня."; }
-            if (window.gtag) gtag("event", "generate_lead", { event_category: "form", event_label: data.get("doc") });
-            var dr = form.closest("dialog"); if (dr) setTimeout(function () { dr.close(); }, 900);
-          } else { fail(); }
-        })
-        .catch(fail)
-        .finally(function () { btn.disabled = false; btn.removeAttribute("aria-busy"); });
-      function fail() { toast("err", "Не вдалося надіслати", "Напишіть нам у Telegram — відповімо так само швидко."); }
+          if (!r.ok) return fail();
+          form.reset();
+          toast("ok", "Заявку отримано", "Відповімо за 15 хвилин у робочий час.");
+          if (status) { status.className = "form-status ok"; status.textContent = "Дякуємо! Заявку отримано."; }
+          if (window.gtag) gtag("event", "generate_lead", { event_category: "form", event_label: data.get("doc") });
+          var dr = form.closest("dialog"); if (dr) setTimeout(function () { dr.close(); }, 900);
+        }).catch(fail).finally(function () { btn.disabled = false; });
     });
   }
   $$("form[data-lead]").forEach(wireForm);
 
-  /* ---------- prefill ?doc= ---------- */
-  var doc = new URLSearchParams(location.search).get("doc");
-  if (doc) $$("select[name=doc]").forEach(function (s) { for (var i = 0; i < s.options.length; i++) if (s.options[i].value === doc) s.selectedIndex = i; });
+  function setSel(sel, val) { if (!sel || !val) return; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === val) { sel.selectedIndex = i; return; } }
 
-  /* ---------- lead dialog: drawer on mobile, modal on desktop ---------- */
-  var mq = window.matchMedia("(max-width:900px)");
-  var tpl = $("#lead-form-tpl");
-  var dialog = null;
-  if (tpl && "HTMLDialogElement" in window) {
-    dialog = document.createElement("dialog");
-    dialog.className = "drawer"; dialog.setAttribute("aria-label", "Форма заявки");
-    var panel = document.createElement("div"); panel.className = "drawer-panel";
-    panel.innerHTML = '<div class="drawer-handle"></div><button type="button" class="drawer-close" aria-label="Закрити"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
-    var clone = tpl.content.firstElementChild.cloneNode(true);
-    $$("[id]", clone).forEach(function (n) { var id = n.id; n.id = "d-" + id; var l = $('label[for="' + id + '"]', clone); if (l) l.htmlFor = "d-" + id; });
-    // keep the page's chosen document, if a page form exists
-    var pageSel = $("form[data-lead]:not([data-tpl]) select[name=doc]"), dSel = $("select[name=doc]", clone);
-    if (pageSel && dSel) dSel.value = pageSel.value;
-    panel.appendChild(clone); dialog.appendChild(panel); document.body.appendChild(dialog);
-    wireForm(clone);
-    $(".drawer-close", dialog).addEventListener("click", function () { dialog.close(); });
-    dialog.addEventListener("click", function (e) { if (e.target === dialog) dialog.close(); });
+  /* ---------- конфігуратор ---------- */
+  var D = {
+    svid: { t: "від 1", u: "роб. дня", p: 80, m: "За ордером адвоката, без довіреності й консульства." },
+    vyt: { t: "від 1", u: "роб. дня", p: 80, m: "За ордером адвоката, без довіреності й консульства." },
+    nes: { t: "від 5", u: "роб. днів", p: 100, m: "Паперовий, з печаткою МВС. Регламентний строк — до 30 днів, зазвичай швидше." },
+    rnokpp: { t: "від 1", u: "роб. дня", p: 50, m: "Потрібна нотаріальна довіреність — зразок надамо." },
+    apostyl: { t: "4–10", u: "роб. днів", p: 50, m: "Мін'юст, МЗС або МОН — залежно від документа." }
+  };
+  var cDoc = $("#cDoc"), cC = $("#cCountry");
+  function pick() { return cDoc ? cDoc.options[cDoc.selectedIndex] : null; }
+  function msgText() { var o = pick(); return "Вітаю! Потрібен документ з України: " + o.text + ", я в країні: " + cC.value + ". Підкажіть ціну і строк."; }
+  function setLinks() { var t = encodeURIComponent(msgText()); $("#cTg").href = TG + "?text=" + t; $("#cWa").href = WA + "?text=" + t; $("#cVb").href = VB + "&text=" + t; }
+  function applyPick() {
+    var o = pick(), d = D[o.getAttribute("data-k")] || D.svid;
+    $("#cTerm").innerHTML = d.t + " <span>" + d.u + "</span>";
+    $("#cPrice").innerHTML = "від " + d.p + " <span>€</span>";
+    $("#cMeta").textContent = d.m;
+    var dt = $("#destT"); if (dt) dt.textContent = cC.value === "Інша країна" ? "Ваша країна" : cC.value;
+    setLinks();
   }
-  function openLead() { if (dialog) { dialog.showModal(); setTimeout(function () { var f = $("[name=contact]", dialog); }, 50); } }
-  function pageFormVisible() { var f = $("#form"); return !!f && f.offsetParent !== null; }
+  if (cDoc && cC) { cDoc.addEventListener("change", applyPick); cC.addEventListener("change", applyPick); setLinks(); }
 
-  // every link to #form: scroll if a visible form is on the page, else open the dialog
+  /* ---------- діалог заявки ---------- */
+  var tpl = $("#lead-form-tpl"), dlg = null;
+  function openLead(prefill, doc) {
+    if (!tpl || !("HTMLDialogElement" in window)) { var f0 = $("#form"); if (f0) f0.scrollIntoView(); return; }
+    if (!dlg) {
+      dlg = document.createElement("dialog"); dlg.className = "dlg"; dlg.setAttribute("aria-label", "Заявка");
+      dlg.innerHTML = '<div class="dlgin"><div class="dlghead"><div><span class="eyebrow" style="margin:0">Заявка</span><p class="h">Опишіть ситуацію — відповімо за 15 хвилин</p></div><button class="x" type="button" aria-label="Закрити">×</button></div><div class="dlgbody"></div><div class="msgs" style="margin-top:14px">або одразу: <a href="' + TG + '" target="_blank" rel="noopener">Telegram</a><a href="' + WA + '" target="_blank" rel="noopener">WhatsApp</a><a href="' + VB + '">Viber</a></div></div>';
+      document.body.appendChild(dlg);
+      $(".dlgbody", dlg).appendChild(tpl.content.cloneNode(true));
+      wireForm($("form", dlg));
+      $(".x", dlg).addEventListener("click", function () { dlg.close(); });
+      dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+    }
+    var f = $("form", dlg);
+    if (prefill && cDoc) { setSel($("[name=doc]", f), cDoc.value); setSel($("[name=country]", f), cC.value); }
+    if (doc) setSel($("[name=doc]", f), doc);
+    dlg.showModal();
+    setTimeout(function () { var i = $("[name=name]", f); i && i.focus(); }, 60);
+  }
   document.addEventListener("click", function (e) {
-    var a = e.target.closest('a[href="#form"], a[href$="/#form"]'); if (!a) return;
-    if (pageFormVisible() && !mq.matches) return; // native anchor scroll on desktop
-    e.preventDefault();
-    if (pageFormVisible()) { $("#form").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-    openLead();
+    var a = e.target.closest && e.target.closest('a[href="#form"],[data-lead-open]'); if (!a) return;
+    var sec = $("#form"), inCfg = !!a.closest(".cfg");
+    if (!inCfg && sec) { var r = sec.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) return; }
+    e.preventDefault(); openLead(inCfg, a.getAttribute("data-doc"));
   });
+  var qdoc = new URLSearchParams(location.search).get("doc");
+  if (qdoc) $$("select[name=doc]").forEach(function (s) { setSel(s, qdoc); });
 
-  // mobile sticky bar on every page
-  if (dialog) {
-    var bar = document.createElement("div"); bar.className = "sticky-cta";
-    bar.innerHTML = '<a class="btn btn-secondary" href="' + TELEGRAM_URL + '" rel="noopener" target="_blank">Telegram</a><button type="button" class="btn btn-primary">Отримати розрахунок</button>';
-    document.body.appendChild(bar);
-    $("button", bar).addEventListener("click", function () { if (pageFormVisible()) $("#form").scrollIntoView({ behavior: "smooth", block: "start" }); else openLead(); });
-    var footer = $(".footer");
-    if (footer && "IntersectionObserver" in window) new IntersectionObserver(function (en) { bar.classList.toggle("hidden", en[0].isIntersecting); }, { threshold: 0.1 }).observe(footer);
+  /* ---------- сцена: шлях документа ---------- */
+  var sc = $("#scene");
+  function initScene() {
+    var route = $("#route"), prog = $("#prog"), pack = $("#pack"), doc = $("#doc"), sig = $("#sig"), order = $("#order"), apo = $("#apo"),
+      envg = $("#envg"), envf = $("#envf"), flap = $("#flap"), flapb = $("#flapb"), seal = $("#seal"), done = $("#done"), dest = $("#dest"),
+      destRing = $("#destRing"), noteT = $("#noteT"), bar = $("#bar"), ct = $("#ct"), cd = $("#cd"), st = $$(".st", sc), stage = $(".stage", sc);
+    var L = route.getTotalLength(); prog.style.strokeDasharray = L; var SL = sig.getTotalLength(); sig.style.strokeDasharray = SL;
+    var T = st.map(function (li) { return [$("b", li).textContent, $(".d", li).textContent]; });
+    var N = ["Договір підписано", "Ордер подано, документ отримано", "Апостиль і відправка", "Доставлено до дверей"], cur = -1;
+    var cl = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; }, ph = function (p, a, b) { return cl((p - a) / (b - a)); }, ez = function (t) { return t * t * (3 - 2 * t); };
+    var pop = function (el, t) { el.setAttribute("opacity", t); var tr = el.getAttribute("data-tr"); if (tr === null) { tr = el.getAttribute("transform") || ""; el.setAttribute("data-tr", tr); } el.setAttribute("transform", tr + " scale(" + (1.6 - .6 * t) + ")"); };
+    var render = function (p) {
+      sig.style.strokeDashoffset = SL * (1 - ez(ph(p, .03, .2)));
+      pop(order, ez(ph(p, .24, .32)));
+      pop(apo, ez(ph(p, .5, .57)));
+      var into = ez(ph(p, .6, .74));
+      doc.setAttribute("transform", "translate(0," + (40 * into) + ") scale(" + (1 - .45 * into) + ")");
+      envg.setAttribute("opacity", into > 0 ? 1 : 0); envf.setAttribute("opacity", ph(p, .66, .7));
+      var fl = -1 + 2 * ez(ph(p, .72, .78));
+      flap.setAttribute("transform", "translate(0,-30) scale(1," + fl + ") translate(0,30)");
+      flapb.setAttribute("transform", "translate(0,-30) scale(1," + (fl < 0 ? -fl : 0) + ") translate(0,30)");
+      flap.setAttribute("opacity", fl < 0 ? 0 : 1); seal.setAttribute("opacity", ez(ph(p, .78, .81)));
+      var t = ez(ph(p, .82, .96)), pt = route.getPointAtLength(t * L), lift = Math.sin(t * Math.PI);
+      pack.setAttribute("transform", "translate(" + pt.x + "," + pt.y + ") rotate(" + (10 * lift) + ") scale(" + (1 - .12 * lift) + ")");
+      prog.style.strokeDashoffset = L * (1 - t);
+      dest.setAttribute("opacity", .55 + .45 * t); destRing.setAttribute("r", 12 + 6 * ez(ph(p, .95, 1)));
+      pop(done, ez(ph(p, .96, 1)));
+      bar.style.width = (p * 100) + "%";
+      var i = p < .22 ? 0 : p < .48 ? 1 : p < .8 ? 2 : 3;
+      if (i !== cur) { cur = i; ct.textContent = T[i][0]; cd.textContent = T[i][1]; noteT.textContent = N[i]; st.forEach(function (li, k) { li.className = "st" + (k < i ? " done" : k === i ? " on" : ""); }); }
+    };
+    var tick = false, onS = function () {
+      if (tick) return; tick = true;
+      requestAnimationFrame(function () { tick = false; var r = sc.getBoundingClientRect(), m = sc.offsetHeight - stage.offsetHeight; render(cl(-r.top / m)); });
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) render(1);
+    else { addEventListener("scroll", onS, { passive: true }); addEventListener("resize", onS); render(0); onS(); }
   }
-
-  /* ---------- number count-up (NumberFlow-like) ---------- */
-  function countUp(el) {
-    var raw = el.textContent.trim(), m = raw.match(/^(\d[\d\s ]*)(\+?)$/); if (!m) return;
-    var target = parseInt(m[1].replace(/\D/g, ""), 10), suffix = m[2], start = null, dur = 1100;
-    var fmt = function (n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); };
-    if (target > 1900 && target < 2100) { fmt = function (n) { return String(n); }; } // year
-    function step(ts) { if (!start) start = ts; var p = Math.min((ts - start) / dur, 1), e = 1 - Math.pow(1 - p, 3); el.textContent = fmt(Math.round(target * e)) + suffix; if (p < 1) requestAnimationFrame(step); }
-    requestAnimationFrame(step);
-  }
-  /* ---------- reveal on scroll ---------- */
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if ("IntersectionObserver" in window && !reduce) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        en.target.classList.add("in");
-        if (en.target.matches(".stat")) { var b = $("b", en.target); if (b && !b.dataset.done) { b.dataset.done = "1"; countUp(b); } }
-        io.unobserve(en.target);
-      });
-    }, { threshold: 0.2 });
-    $$(".card, .tile, .stat, .step, .faq details").forEach(function (el, i) { el.classList.add("reveal"); el.style.transitionDelay = (i % 4) * 60 + "ms"; io.observe(el); });
+  if (sc) {
+    if ("IntersectionObserver" in window) { var io = new IntersectionObserver(function (en) { if (en[0].isIntersecting) { io.disconnect(); initScene(); } }, { rootMargin: "600px 0px" }); io.observe(sc); }
+    else initScene();
   }
 })();
