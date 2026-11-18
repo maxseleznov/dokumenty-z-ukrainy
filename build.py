@@ -15,7 +15,7 @@ SITE = {
     "cert": "000208",
     "city": "м. Вінниця, вул. А. Артинова, 46, офіс 110",
     "offices": "Вінниця · Київ · Харків",
-    "email": os.environ.get("SITE_EMAIL", ""),  # публічний email задається змінною середовища
+    "email": os.environ.get("SITE_EMAIL", "rozirvannya@gmail.com"),  # публічна адреса бюро; можна перевизначити змінною середовища
     "phone": "+380 93 768 84 16",
     "phone_raw": "+380937688416",
     "telegram": "https://t.me/Online_Advokat_UA",
