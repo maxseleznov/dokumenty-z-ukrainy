@@ -142,6 +142,7 @@ def head(title, desc, path, extra_ld=None, noindex=False):
 <title>{t}</title>
 <meta name="description" content="{d}">
 {robots}<link rel="canonical" href="{url}">
+{"" if noindex else f'<link rel="alternate" hreflang="uk" href="{url}">\n<link rel="alternate" hreflang="x-default" href="{url}">'}
 <meta name="theme-color" content="#f3ebdf">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE['name']}">
