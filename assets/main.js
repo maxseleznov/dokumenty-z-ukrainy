@@ -139,7 +139,12 @@
     else { addEventListener("scroll", onS, { passive: true }); addEventListener("resize", onS); render(0); onS(); }
   }
   if (sc) {
-    if ("IntersectionObserver" in window) { var io = new IntersectionObserver(function (en) { if (en[0].isIntersecting) { io.disconnect(); initScene(); } }, { rootMargin: "600px 0px" }); io.observe(sc); }
-    else initScene();
+    var started = false, start = function () {
+      if (started) return; started = true; removeEventListener("scroll", start); removeEventListener("touchstart", start);
+      (window.requestIdleCallback || function (f) { setTimeout(f, 1) })(initScene);
+    };
+    addEventListener("scroll", start, { passive: true, once: true });
+    addEventListener("touchstart", start, { passive: true, once: true });
+    addEventListener("load", function () { setTimeout(start, 3500); });
   }
 })();
