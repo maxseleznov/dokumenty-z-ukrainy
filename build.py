@@ -127,7 +127,8 @@ def head(title, desc, path, extra_ld=None, noindex=False):
     }]
     if SITE["email"]: ld[0]["email"] = SITE["email"]
     if extra_ld: ld += extra_ld
-    robots = '<meta name="robots" content="noindex,nofollow">\n' if noindex else ""
+    robots = ('<meta name="robots" content="noindex,nofollow">\n' if noindex else
+              '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">\n')
     title = SEO_TITLES.get(path, title.split(" | ")[0])
     assert len(title) <= 60, f"title > 60: {path} ({len(title)})"
     desc = SEO_DESC.get(path, desc)
