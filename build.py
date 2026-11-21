@@ -62,6 +62,32 @@ ICO_VB = '<svg width="18" height="18" viewBox="0 0 24 24" fill="#6a56e0" aria-hi
 
 NAV = [("/#docs", "Документи"), ("/#diia", "Коли не Дія"), ("/#countries", "Країни"), ("/#price", "Вартість"), ("/blog/", "Блог")]
 
+
+# ---------------------------------------------------------------- SEO-заголовки (<title>), до 60 символів, без повтору бренду
+SEO_TITLES = {
+    "/": "Документи з України за кордон — без поїздки і довіреності",
+    "/svidotstvo-pro-narodzhennya/": "Дублікат свідоцтва про народження з України за кордон",
+    "/svidotstvo-pro-shlyub/": "Дублікат свідоцтва про шлюб — отримати з-за кордону",
+    "/svidotstvo-pro-rozirvannya-shlyubu/": "Свідоцтво про розірвання шлюбу: як отримати з-за кордону",
+    "/svidotstvo-pro-smert/": "Дублікат свідоцтва про смерть для спадщини за кордоном",
+    "/vytyag-dracs/": "Витяг з ДРАЦС онлайн і з-за кордону — через адвоката",
+    "/vytyag-pro-nesudymist/": "Витяг про несудимість з апостилем для подання за кордон",
+    "/apostyl/": "Апостиль на свідоцтва ДРАЦС і несудимість з доставкою",
+    "/dlya-ukraintsiv-za-kordonom/": "Документи з України для українців за кордоном",
+    "/rnokpp/": "РНОКПП з-за кордону: отримати або відновити код",
+    "/polshcha/": "Документи з України для Польщі: карта побиту, PESEL",
+    "/nimechchyna/": "Документи з України для Німеччини: Standesamt, Einbürgerung",
+    "/chekhiya/": "Документи з України для Чехії: matrika, trvalý pobyt",
+    "/italiya/": "Документи з України для Італії: cittadinanza, matrimonio",
+    "/ispaniya/": "Документи з України для Іспанії: nacionalidad, arraigo",
+    "/blog/": "Блог: документи з України, ДРАЦС, апостиль",
+    "/blog/apostyl-chy-podvijnyj-apostyl-tablytsya-po-krainakh/": "Апостиль чи подвійний апостиль: таблиця по країнах",
+    "/blog/svidotstvo-pro-rozirvannya-shlyubu-chy-rishennya-sudu/": "Свідоцтво про розірвання шлюбу чи рішення суду",
+    "/blog/diia-vidmovyla-u-povtornij-vydachi/": "Дія відмовила у повторній видачі: 6 причин і що робити",
+    "/privacy.html": "Політика конфіденційності — Документи з України",
+    "/404.html": "Сторінку не знайдено — Документи з України",
+}
+
 # ---------------------------------------------------------------- partials
 def head(title, desc, path, extra_ld=None, noindex=False):
     url = SITE["domain"] + path
@@ -77,6 +103,8 @@ def head(title, desc, path, extra_ld=None, noindex=False):
     if SITE["email"]: ld[0]["email"] = SITE["email"]
     if extra_ld: ld += extra_ld
     robots = '<meta name="robots" content="noindex,nofollow">\n' if noindex else ""
+    title = SEO_TITLES.get(path, title.split(" | ")[0])
+    assert len(title) <= 60, f"title > 60: {path} ({len(title)})"
     t, d = html.escape(title), html.escape(desc)
     return f"""<!doctype html>
 <html lang="uk">
